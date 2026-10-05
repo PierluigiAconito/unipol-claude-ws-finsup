@@ -1,2 +1,6 @@
-streamlit>=1.38
+streamlit>=1.50
+altair>=5.0
+pandas>=2.2
+openpyxl>=3.1   # lettura dei fogli .xlsx caricati (RF-01b)
+fpdf2>=2.7      # solo per scripts/generate_demo_assets.py
 pytest>=8.0

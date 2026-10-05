@@ -23,7 +23,9 @@ MAX_BUDGET_USD = "0.05"  # tetto per chiamata, uso consapevole dei token/costo
 # a $0.03/chiamata contro $0.008 circa fuori repo). Per queste chiamate
 # "esplicative" una-tantum non serve ne' il contesto di progetto ne' l'uso
 # di tool: le isoliamo in una cwd neutra e disabilitiamo i tool per tenere
-# il costo per chiamata basso (vedi docs/04-verifica-umana.md per la misura).
+# il costo per chiamata basso (vedi agents/workflows/uso-token.md per la
+# misura). Eccezione: l'estrazione da file (finsup/extraction.py) riabilita il
+# tool Read, necessario per leggere il PDF e per lo structured output.
 _NEUTRAL_CWD = tempfile.gettempdir()
 
 
@@ -54,47 +56,73 @@ def _subprocess_env() -> dict:
     return env
 
 
+def run_cli(
+    prompt: str,
+    extra_args: list[str],
+    *,
+    system_prompt: str | None = None,
+    model: str = DEFAULT_MODEL,
+    max_budget_usd: str = MAX_BUDGET_USD,
+    timeout_s: int = TIMEOUT_S,
+) -> tuple[dict | None, str | None]:
+    """Lancia `claude -p` dalla cwd neutra e ritorna (payload JSON, errore).
+
+    Punto unico per tutte le chiamate alla CLI (spiegazioni, estrazione da
+    file): auth, encoding e cwd neutra sono gestiti qui una volta sola.
+
+    Su Windows `claude` e' un wrapper `claude.CMD` e cmd.exe tronca gli
+    argomenti al primo a-capo (perdendo anche tutti i flag successivi, es.
+    --json-schema): per questo il prompt passa da stdin e il system prompt
+    viene appiattito su una riga.
+    """
+    binary = _claude_binary()
+    if binary is None:
+        return None, "claude CLI non trovata nel PATH"
+
+    cmd = [
+        binary, "-p",
+        "--model", model,
+        "--output-format", "json",
+        "--no-session-persistence",
+        "--max-budget-usd", max_budget_usd,
+        *extra_args,
+    ]
+    if system_prompt:
+        cmd += ["--system-prompt", " ".join(system_prompt.split())]
+    try:
+        result = subprocess.run(
+            cmd,
+            input=prompt,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",  # la CLI emette UTF-8; su Windows il default e' cp1252
+            timeout=timeout_s,
+            cwd=_NEUTRAL_CWD,
+            env=_subprocess_env(),
+        )
+    except (subprocess.TimeoutExpired, OSError) as exc:
+        return None, f"CLI non raggiungibile ({exc})"
+
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return None, "output della CLI non interpretabile come JSON"
+
+    if payload.get("is_error"):
+        return None, payload.get("result", "errore CLI sconosciuto")
+    return payload, None
+
+
 def ask(prompt: str, *, system_prompt: str | None = None, model: str = DEFAULT_MODEL) -> dict:
     """Esegue un singolo prompt non interattivo sulla CLI locale di Claude.
 
     Ritorna sempre un dict con almeno {"text", "mocked", "cost_usd", "tokens"}.
     Non solleva eccezioni: in caso di qualsiasi problema ritorna una risposta mock.
     """
-    binary = _claude_binary()
-    if binary is None:
-        return _mock(reason="claude CLI non trovata nel PATH")
-
-    cmd = [
-        binary, "-p", prompt,
-        "--model", model,
-        "--output-format", "json",
-        "--no-session-persistence",
-        "--max-budget-usd", MAX_BUDGET_USD,
-        "--tools", "",  # nessun bisogno di tool per una spiegazione una-tantum
-    ]
-    if system_prompt:
-        cmd += ["--system-prompt", system_prompt]
-
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",  # la CLI emette UTF-8; su Windows il default e' cp1252
-            timeout=TIMEOUT_S,
-            cwd=_NEUTRAL_CWD,
-            env=_subprocess_env(),
-        )
-    except (subprocess.TimeoutExpired, OSError) as exc:
-        return _mock(reason=f"CLI non raggiungibile ({exc})")
-
-    try:
-        payload = json.loads(result.stdout)
-    except json.JSONDecodeError:
-        return _mock(reason="output della CLI non interpretabile come JSON")
-
-    if payload.get("is_error"):
-        return _mock(reason=payload.get("result", "errore CLI sconosciuto"))
+    # nessun bisogno di tool per una spiegazione una-tantum
+    payload, error = run_cli(prompt, ["--tools", ""], system_prompt=system_prompt, model=model)
+    if error:
+        return _mock(reason=error)
 
     return {
         "text": payload.get("result", ""),
