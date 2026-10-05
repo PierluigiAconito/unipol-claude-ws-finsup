@@ -8,7 +8,8 @@ Le voci sono quelle che l'utente avrebbe dopo la conferma RF-09: lo
 stipendio contato una volta sola (busta paga e accredito in estratto conto
 sono lo stesso denaro) e, per Marco, la bolletta per servizio al posto del
 suo addebito RID in estratto conto. Le categorie seguono la spec (§4.2):
-mutuo e affitto in Abitazione, ristorazione in Alimentari.
+mutuo e affitto in Abitazione, ristorazione (anche il bar) in Alimentari,
+come li propone l'estrazione reale.
 
 Servono da valori attesi nei test: sono gli stessi numeri che l'app produce
 estraendo i 5 documenti reali (Marco -81,56, Alessandra 1.132,24 al mese).
@@ -41,7 +42,7 @@ MARCO = {
         _exp("Gas naturale (bolletta NordEst)", 39.77, "Abitazione", "fissa"),
         _exp("Internet fibra (bolletta NordEst)", 30.38, "Abitazione", "fissa"),
         _exp("Imposta di bollo sulla bolletta", 2.00, "Altro", "fissa"),
-        _exp("Interessi di mora sulla bolletta di agosto", 0.75, "Debiti/finanziamenti", "variabile"),
+        _exp("Interessi di mora sulla bolletta di agosto", 0.75, "Altro", "variabile"),
         _exp("Rata prestito personale BancaAmici (TAEG 8,99%)", 285.00, "Debiti/finanziamenti", "fissa"),
         _exp("Assicurazione RC auto Generali", 75.00, "Assicurazioni", "fissa"),
         _exp("Supermercato Esselunga", 87.50, "Alimentari", "variabile"),
@@ -53,7 +54,7 @@ MARCO = {
         _exp("Canone conto corrente", 8.50, "Altro", "fissa"),
         _exp("Commissione di gestione conto", 2.00, "Altro", "fissa"),
         _exp("Imposta di bollo sul conto corrente", 8.55, "Altro", "fissa", "trimestrale"),
-        _exp("Bar e spese quotidiane", 18.00, "Svago/discrezionale", "variabile"),
+        _exp("Bar e spese quotidiane", 18.00, "Alimentari", "variabile"),
     ],
     "terms": [
         "TAEG", "Interessi di mora", "Imposta di bollo", "Commissione di gestione",

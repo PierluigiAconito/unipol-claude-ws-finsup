@@ -1,6 +1,6 @@
 # Deliverable Tema 02: evidenze dal prototipo BudgetFacile
 
-I tre deliverable richiesti dalla challenge, con i numeri reali prodotti dall'app sui due scenari demo in [`app/demo_assets/`](../demo_assets/). I documenti sono fittizi (persone, aziende e banche inesistenti); i valori attesi sono in [`demo_data.py`](../finsup/demo_data.py) e verificati da `test_demo_scenarios_match_expected_values`.
+I tre deliverable richiesti dalla challenge, con i numeri reali prodotti dall'app (estrazione dai documenti, verificata il 2026-10-05) sui due scenari demo in [`app/demo_assets/`](../demo_assets/). I documenti sono fittizi (persone, aziende e banche inesistenti); i valori attesi sono in [`demo_data.py`](../finsup/demo_data.py) e verificati da `test_demo_scenarios_match_expected_values`.
 
 | Scenario | Persona | Documenti |
 |---|---|---|
@@ -32,8 +32,8 @@ Caricati i documenti e confermato il calcolo nella conferma RF-09 (i doppioni tr
 | Entrate al mese | **1.408,73 €** | **3.296,34 €** (stipendio 2.576,34 € + affitto percepito 720 €) |
 | Uscite al mese | **1.490,29 €** | **2.164,10 €** |
 | Risparmio al mese | **−81,56 €** (−5,8%): avviso RF-06 con le categorie che pesano di più, senza indicazioni su cosa fare | **1.132,24 €** (34,3%) |
-| Dove vanno le uscite | Abitazione 52,2% · Debiti/finanziamenti 19,2% · Alimentari 14,8% · Assicurazioni 5,0% · Altro 3,7% · Svago 2,8% · Trasporti 2,3% | Abitazione 49,9% · Alimentari 21,6% · Altro 10,0% · Assicurazioni 5,3% · Svago 5,2% · Salute 4,2% · Trasporti 3,7% |
-| Regola 50/30/20 (riferimento) | necessità 102,9% · desideri 2,9% · risparmio −5,8% | necessità 62,2% · desideri 3,4% · risparmio 34,3% |
+| Dove vanno le uscite | Abitazione 52,2% · Debiti/finanziamenti 19,1% · Alimentari 16,0% · Assicurazioni 5,0% · Altro 3,8% · Trasporti 2,3% · Svago 1,5% | Abitazione 49,9% · Alimentari 21,6% · Altro 10,0% · Assicurazioni 5,3% · Svago 5,2% · Salute 4,2% · Trasporti 3,7% |
+| Regola 50/30/20 (riferimento) | necessità 104,2% · desideri 1,6% · risparmio −5,8% | necessità 62,2% · desideri 3,4% · risparmio 34,3% |
 | Obiettivo di risparmio | 1.000 €: "mantenendo il ritmo attuale la cifra non viene raggiunta" | 10.000 €: "raggiunta in circa 9 mesi", come proiezione matematica |
 
 Perché l'app non dà lo stesso saldo del riepilogo della banca (Marco −87,26 €, Alessandra +1.085,29 €): riporta al mese le voci non mensili (RF-02). Il bollo trimestrale di 8,55 € vale 2,85 € al mese, le spese annuali del fido di 45 € valgono 3,75 € al mese.
@@ -44,7 +44,7 @@ Esempi di singola voce, prima e dopo:
 |---|---|
 | `26/09/2025  Imposta di bollo trimestrale conto corrente (luglio-settembre 2025)  8,55` | Categoria Altro, **2,85 € al mese** (8,55 € ÷ 3). Glossario: è una tassa dello Stato che la banca trattiene e versa allo Stato |
 | `Accise e oneri di sistema energia  120 kWh × 0,0227 €/kWh  2,72` | Dentro la voce "Energia elettrica" (58,05 €, IVA inclusa). Glossario per "Accise" e "Oneri di sistema" |
-| `Rata mensile prestito personale nr. 14/48 - BancaAmici (TAEG 8,99%)  285,00` | Categoria Debiti/finanziamenti, 19,2% delle uscite di Marco. Glossario: il TAEG è il costo totale del prestito in un anno, interessi e spese compresi |
+| `Rata mensile prestito personale nr. 14/48 - BancaAmici (TAEG 8,99%)  285,00` | Categoria Debiti/finanziamenti, 19,1% delle uscite di Marco. Glossario: il TAEG è il costo totale del prestito in un anno, interessi e spese compresi |
 
 ## 3. Risk & Clarity Note
 
