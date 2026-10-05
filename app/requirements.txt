@@ -2,6 +2,5 @@ streamlit>=1.50
 altair>=5.0
 pandas>=2.2
 python-calamine>=0.3  # lettura dei fogli .xlsx/.xls caricati, ignora gli stili (RF-01b)
-openpyxl>=3.1   # riserva per i fogli .xlsx e script degli asset demo
-fpdf2>=2.7      # solo per scripts/generate_demo_assets.py
+openpyxl>=3.1   # riserva per i fogli .xlsx (calamine resta il lettore principale)
 pytest>=8.0

@@ -1,43 +1,50 @@
-# Deliverable Tema 02: evidenze dal prototipo FinSup
+# Deliverable Tema 02: evidenze dal prototipo BudgetFacile
 
-I tre deliverable richiesti dalla challenge, con i numeri reali prodotti dall'app sui documenti demo in [`app/demo_assets/`](../demo_assets/) (persona e importi inventati, generati da [`generate_demo_assets.py`](../scripts/generate_demo_assets.py)).
+I tre deliverable richiesti dalla challenge, con i numeri reali prodotti dall'app sui due scenari demo in [`app/demo_assets/`](../demo_assets/). I documenti sono fittizi (persone, aziende e banche inesistenti); i valori attesi sono in [`demo_data.py`](../finsup/demo_data.py) e verificati da `test_demo_scenarios_match_expected_values`.
+
+| Scenario | Persona | Documenti |
+|---|---|---|
+| **Basso risparmio** | Marco Ferretti, commesso, Milano | `marco_bustapaga.pdf` · `marco_bolletta.pdf` · `marco_estrattoconto.xlsx` |
+| **Alto risparmio** | Alessandra Moretti, quadro, Torino | `alessandra_bustapaga.pdf` · `alessandra_estrattoconto.xlsx` |
 
 ## 1. User Difficulty Statement
 
-Vedi [requisiti-funzionali.md §2](requisiti-funzionali.md#2-persona-e-difficoltà-user-difficulty-statement): una persona con bassa alfabetizzazione finanziaria riceve busta paga, estratto conto e altri documenti pieni di gergo, e ogni mese non riesce a rispondere a "quanto spendo, per cosa, e quanto mi resta davvero?".
+Vedi [requisiti-funzionali.md §2](requisiti-funzionali.md#2-persona-e-difficoltà-user-difficulty-statement): una persona con bassa alfabetizzazione finanziaria riceve busta paga, bollette ed estratto conto pieni di gergo, e ogni mese non riesce a rispondere a "quanto spendo, per cosa, e quanto mi resta davvero?".
 
 ## 2. Before / After Simplicity Evidence
 
-### Before: tre documenti, nessun quadro d'insieme
+### Before: documenti sparsi, nessun quadro d'insieme (Marco)
 
 | Documento | Cosa vede l'utente |
 |---|---|
-| `busta_paga_demo.pdf` | 9 righe tra competenze e trattenute: lordo 2.180,00 €, contributi INPS 9,19%, imponibile IRPEF, IRPEF lorda, detrazioni art. 13 TUIR, addizionali "rata 9/11", TFR "accantonato, non corrisposto". Il netto (1.620,00 €) è una riga tra le altre |
-| `estratto_conto_demo.pdf` | 15 addebiti in ordine di data, con sigle e note legali: "TAN 7,90% - TAEG 8,45%", "addebito diretto SDD", "interessi di mora", "commissione di gestione", "imposta di bollo (addebito trimestrale)" |
-| `foglio_spese_demo.xlsx` | voci annuali (assicurazione RC con franchigia 500 €, bollo auto, TARI) e un'entrata annuale "netto ritenuta d'acconto", da riportare al mese a mano |
+| Busta paga | Lordo 1.750,00 €, poi contributi INPS 9,19%, base imponibile IRPEF, IRPEF lorda al 23%, detrazione art. 13 TUIR, IRPEF netta, addizionali regionale e comunale, quota TFR, contributo INPS azienda, costo aziendale. Il netto (1.408,73 €) è una riga tra le altre |
+| Bolletta multiservizi | 13 righe su 3 servizi: quota energia, quota potenza impegnata, canone di distribuzione (quota rete), accise e oneri di sistema, IVA 10% e 22%, POD/PDR, imposta di bollo, interessi di mora "D.Lgs. 231/2002". Totale 130,95 € |
+| Estratto conto | 15 movimenti con sigle: prestito personale "TAEG 8,99%", "Addebito RID", imposta di bollo trimestrale, canone, commissione di gestione. Lo stipendio compare di nuovo come accredito e la bolletta di nuovo come addebito |
 
-Per sapere quanto resta a fine mese bisogna: capire quale riga della busta paga conta, sommare 15 addebiti, dividere per 12 le voci annuali e per 3 il bollo trimestrale, e capire cosa sono TAEG, mora, SDD.
+Per sapere quanto resta a fine mese bisogna capire quale riga della busta paga conta, non contare due volte stipendio e bolletta, sommare gli addebiti, riportare al mese il bollo trimestrale e capire cosa sono TAEG, oneri di sistema, mora e RID.
 
 ### After: un budget unico, spiegato
 
-Caricati i tre file, controllate le voci nella schermata di conferma e confermato il calcolo, l'app mostra:
+Caricati i documenti e confermato il calcolo nella conferma RF-09 (i doppioni tra documenti li toglie l'app e li mostra in giallo):
 
-| | Valore |
+| | Marco (basso risparmio) | Alessandra (alto risparmio) |
+|---|---|---|
+| Entrate al mese | **1.408,73 €** | **3.296,34 €** (stipendio 2.576,34 € + affitto percepito 720 €) |
+| Uscite al mese | **1.490,29 €** | **2.164,10 €** |
+| Risparmio al mese | **−81,56 €** (−5,8%): avviso RF-06 con le categorie che pesano di più, senza indicazioni su cosa fare | **1.132,24 €** (34,3%) |
+| Dove vanno le uscite | Abitazione 52,2% · Debiti/finanziamenti 19,2% · Alimentari 14,8% · Assicurazioni 5,0% · Altro 3,7% · Svago 2,8% · Trasporti 2,3% | Abitazione 49,9% · Alimentari 21,6% · Altro 10,0% · Assicurazioni 5,3% · Svago 5,2% · Salute 4,2% · Trasporti 3,7% |
+| Regola 50/30/20 (riferimento) | necessità 102,9% · desideri 2,9% · risparmio −5,8% | necessità 62,2% · desideri 3,4% · risparmio 34,3% |
+| Obiettivo di risparmio | 1.000 €: "mantenendo il ritmo attuale la cifra non viene raggiunta" | 10.000 €: "raggiunta in circa 9 mesi", come proiezione matematica |
+
+Perché l'app non dà lo stesso saldo del riepilogo della banca (Marco −87,26 €, Alessandra +1.085,29 €): riporta al mese le voci non mensili (RF-02). Il bollo trimestrale di 8,55 € vale 2,85 € al mese, le spese annuali del fido di 45 € valgono 3,75 € al mese.
+
+Esempi di singola voce, prima e dopo:
+
+| Prima (documento) | Dopo (BudgetFacile) |
 |---|---|
-| Entrate al mese | **1.720,00 €** (stipendio netto 1.620 € + collaborazioni 1.200 €/anno = 100 €/mese) |
-| Uscite al mese | **1.682,54 €** |
-| Risparmio al mese | **37,46 €**, tasso di risparmio **2,2%** |
-| Dove vanno le uscite | Abitazione 46,9% · Alimentari 22,6% · Debiti/finanziamenti 11,7% · Trasporti 8,2% · Svago 4,0% · Salute 3,4% · Assicurazioni 2,7% · Altro 0,5% (torta + tabella) |
-| Regola 50/30/20 | necessità 93,9% · desideri 4,0% · risparmio 2,2% delle entrate, accanto al riferimento 50/30/20 (grafico a barre) |
-| Obiettivo 1.000 € | "verrebbe raggiunta in circa 27 mesi (circa 2 anni e 3 mesi)", come proiezione matematica |
-
-Esempio di singola voce, prima e dopo:
-
-| Prima (estratto conto) | Dopo (FinSup) |
-|---|---|
-| `14/09/2026  Imposta di bollo (addebito trimestrale)  8,55 €` | Categoria Altro, **2,85 € al mese** (8,55 € ÷ 3). Glossario: *"È una tassa dello Stato che la banca trattiene dal conto e versa allo Stato: non è un guadagno della banca."* |
-| `10/09/2026  Interessi di mora rata di agosto  12,40 €` | Categoria Debiti/finanziamenti. Glossario: *"Sono interessi in più che si pagano quando una rata o una bolletta viene pagata dopo la scadenza: una specie di penale per il ritardo."* |
-| `Assicurazione auto RC (franchigia 500 €)  540  annuale` | **45,00 € al mese**. Glossario per "RC auto" e "Franchigia" |
+| `26/09/2025  Imposta di bollo trimestrale conto corrente (luglio-settembre 2025)  8,55` | Categoria Altro, **2,85 € al mese** (8,55 € ÷ 3). Glossario: è una tassa dello Stato che la banca trattiene e versa allo Stato |
+| `Accise e oneri di sistema energia  120 kWh × 0,0227 €/kWh  2,72` | Dentro la voce "Energia elettrica" (58,05 €, IVA inclusa). Glossario per "Accise" e "Oneri di sistema" |
+| `Rata mensile prestito personale nr. 14/48 - BancaAmici (TAEG 8,99%)  285,00` | Categoria Debiti/finanziamenti, 19,2% delle uscite di Marco. Glossario: il TAEG è il costo totale del prestito in un anno, interessi e spese compresi |
 
 ## 3. Risk & Clarity Note
 
@@ -52,22 +59,22 @@ Esempio di singola voce, prima e dopo:
 - Gli importi: l'estrazione riporta l'importo esatto del documento e la colonna "Da dove arriva" indica il file di origine. I calcoli sono deterministici ([`budget.py`](../finsup/budget.py), coperti da test), non generati dall'AI.
 - Nessuna voce sparisce in silenzio: se un'etichetta estratta fa scattare il guardrail, la voce resta con il suo importo e un'etichetta neutra, segnalata all'utente.
 - Busta paga: conta solo il netto in busta. Lordo e trattenute non diventano uscite, quindi niente doppio conteggio.
-- Stesso importo in due documenti (es. stipendio in busta paga e accredito sull'estratto conto): l'app non unisce nulla da sola, segnala il "possibile doppione" nella conferma e lascia decidere all'utente.
+- Stesso denaro in due documenti (stipendio in busta paga e accredito in estratto conto; bolletta e suo addebito RID): l'app lo conta una volta sola, tiene il dettaglio (netto in busta, voci della bolletta) e toglie l'accredito o l'addebito dell'estratto conto. Le voci tolte restano visibili, in giallo, nella conferma RF-09: niente sparisce in silenzio.
 
 **Come è stata evitata l'ambiguità**
-- Disclaimer "strumento educativo, non consulenza finanziaria" in cima a ogni schermata e nella barra laterale.
+- Disclaimer "strumento educativo, non consulenza finanziaria" in cima a ogni schermata.
 - **Conferma obbligatoria (RF-09)**: nessun calcolo senza passare dalla tabella editabile voce per voce; i risultati senza conferma rimandano alla conferma (test `test_results_without_confirmation_redirect_to_confirmation`).
 - Nessuna prescrizione: il 50/30/20 è "un termine di paragone, non un obiettivo da raggiungere"; con risparmio negativo l'app mostra solo quali categorie pesano di più (RF-06); la proiezione dichiara di non essere una previsione e di non considerare interessi, inflazione e imprevisti (RF-07).
 - Ogni testo AI passa da [`content_guard.py`](../finsup/content_guard.py) **prima** di essere mostrato; se viola il vincolo non viene mostrato e l'utente vede che una spiegazione è stata omessa.
-- Fonte sempre dichiarata: definizione rivista dal team oppure spiegazione generata da Claude, con il costo della chiamata.
+- Fonte sempre dichiarata: definizione rivista a mano dal team oppure spiegazione generata automaticamente e passata dal filtro anti-consigli.
 
-**Limiti noti**: la categoria proposta dall'estrazione può essere discutibile (es. "Ristoranti e bar" in Svago invece che in Alimentari); per questo esiste la conferma RF-09. Il prototipo copre l'happy path (§8 della specifica).
+**Limiti noti**: la categoria è proposta dall'estrazione, che segue le regole della specifica §4.2 scritte nel prompt (mutuo e affitto in Abitazione, ristorazione in Alimentari); se sbaglia, si corregge nella conferma RF-09 e i totali non cambiano. Il riconoscimento dei doppioni si basa sugli importi: due spese diverse con lo stesso importo in file diversi vanno controllate nella tabella gialla. Il prototipo copre l'happy path (§8 della specifica).
 
 ## Scaletta della demo (circa 2 minuti)
 
-0. **Prima del pitch**: `.venv/Scripts/python app/scripts/prewarm_extraction.py app/demo_assets/*` legge i documenti una volta e salva il risultato in cache (l'estrazione reale richiede 40-100 s per documento). In demo lo stesso file viene riletto all'istante, a costo zero.
-1. **Before**: aprire `estratto_conto_demo.pdf` e `busta_paga_demo.pdf`.
-2. Caricare i 3 file e premere "Leggi i documenti con Claude". Fallback offline: "Usa i dati di esempio", con gli stessi dati dei documenti.
-3. **Conferma RF-09**: mostrare la colonna "Da dove arriva", correggere una categoria (Ristoranti → Alimentari), poi confermare.
-4. **After**: metriche, poi le schede Riepilogo (torta + barre), Regola 50/30/20, Parole tecniche, Obiettivo di risparmio (1.000 €).
-5. **RF-06**: "Modifica i dati", cancellare la riga "Collaborazioni occasionali" e confermare. Il saldo diventa −62,54 €, con evidenza delle categorie più pesanti e nessuna indicazione su cosa fare.
+0. **Prima del pitch**: `.venv/Scripts/python app/scripts/prewarm_extraction.py app/demo_assets/*` legge i 5 documenti una volta e salva il risultato in cache (l'estrazione reale richiede 40-100 s per documento). In demo gli stessi file vengono riletti all'istante, a costo zero.
+1. **Marco, basso risparmio. Before**: aprire la bolletta (13 righe di gergo) e la busta paga.
+2. Caricare i 3 file di Marco e premere "Carica i documenti": grazie al passo 0 la lettura è istantanea e non richiede rete.
+3. **Conferma RF-09**: accredito dello stipendio (= busta paga) e addebito RID della bolletta (= totale delle sue voci) sono già tolti e mostrati in giallo; far vedere che gli importi sono quelli dei documenti, poi confermare.
+4. **After**: risparmio −81,56 € con l'avviso RF-06 (Abitazione e Debiti pesano di più), regola 50/30/20 come riferimento, glossario su "Oneri di sistema" e "TAEG".
+5. **Alessandra, alto risparmio**: "Ricomincia da capo", caricare i 2 file e confermare (stipendio contato una volta, mutuo già in Abitazione). Risparmio 1.132,24 € (34,3%); obiettivo di 10.000 € in circa 9 mesi.

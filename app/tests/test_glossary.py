@@ -3,12 +3,17 @@ from finsup import demo_data, glossary
 
 
 def test_detects_terms_in_demo_labels():
-    labels = [i["label"] for i in demo_data.INCOMES + demo_data.EXPENSES]
+    labels = [i["label"] for i in demo_data.MARCO["incomes"] + demo_data.MARCO["expenses"]]
     terms = dict(glossary.detect_terms(labels))
-    assert terms["TAEG"] == "Rata prestito auto (TAEG 8,45%)"
-    for expected in ("Interessi di mora", "Commissione di gestione", "Imposta di bollo",
-                     "Franchigia", "RC auto", "TARI", "Ritenuta d'acconto", "Bollo auto"):
+    assert terms["TAEG"] == "Rata prestito personale BancaAmici (TAEG 8,99%)"
+    for expected in ("Interessi di mora", "Commissione di gestione", "Imposta di bollo", "RC auto"):
         assert expected in terms
+
+
+def test_demo_scenario_terms_all_have_reviewed_definitions():
+    # offline il glossario usa solo le definizioni riviste: nessun termine demo deve sparire
+    for scenario in demo_data.SCENARIOS.values():
+        assert all(t in glossary.KNOWN_TERMS for t in scenario["terms"])
 
 
 def test_doc_terms_are_mapped_to_known_terms_without_duplicates():
