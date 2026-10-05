@@ -166,11 +166,16 @@ def _clean_income(item: dict, source: str) -> dict:
 
 def _clean_expense(item: dict, source: str) -> dict:
     category = item.get("category") if item.get("category") in CATEGORIES else "Altro"
-    return {
+    expense = {
         **_clean_income(item, source),
         "category": category,
         "type": item.get("type") if item.get("type") in EXPENSE_TYPES else DEFAULT_TYPE[category],
     }
+    # Una spesa una tantum conta per intero nel mese in cui si paga: se l'estrazione
+    # la segna anche "annuale" verrebbe divisa per 12 (caso reale: libri 45 € -> 3,75 €).
+    if expense["type"] == "una tantum":
+        expense["periodicity"] = "mensile"
+    return expense
 
 
 def _empty(error: str) -> dict:

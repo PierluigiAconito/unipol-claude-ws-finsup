@@ -74,6 +74,16 @@ def test_values_outside_enum_are_normalized(monkeypatch, pdf):
     assert result["terms"] == ["TAEG"]
 
 
+def test_one_off_expense_is_never_spread_over_the_year(monkeypatch, pdf):
+    payload = {"structured_output": {"incomes": [], "expenses": [
+        {"label": "Acquisto libri", "amount": 45, "category": "Svago/discrezionale",
+         "type": "una tantum", "periodicity": "annuale"},
+    ]}}
+    monkeypatch.setattr(extraction, "run_cli", _fake_cli(payload=payload))
+    expense = extraction.extract_budget_items(pdf)["expenses"][0]
+    assert expense["periodicity"] == "mensile" and expense["amount"] == 45
+
+
 def test_pdf_is_read_with_read_tool_and_json_schema(monkeypatch, pdf):
     fake = _fake_cli(payload={"structured_output": {"incomes": [], "expenses": []}})
     monkeypatch.setattr(extraction, "run_cli", fake)
