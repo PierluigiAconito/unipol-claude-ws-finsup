@@ -1,0 +1,21 @@
+# Letto da Streamlit accanto allo script (app/main.py), anche avviando dalla root.
+# Stesso stile della presentazione (variabili :root del deck): fondo caldo,
+# accento verde, Segoe UI, angoli a 12 px. Tema fisso chiaro: con il tema
+# scuro del sistema alcune etichette scendevano sotto il contrasto minimo.
+[theme]
+base = "light"
+primaryColor = "#006B54"             # --acc
+backgroundColor = "#F4F2ED"          # --bg
+secondaryBackgroundColor = "#ECEAE3" # --surf2 (sidebar, campi)
+textColor = "#1A1A28"                # --text
+font = "Segoe UI, system-ui, sans-serif"
+baseRadius = "12px"                  # --r
+
+[client]
+toolbarMode = "minimal"   # niente Deploy/Rerun durante la demo
+
+[server]
+runOnSave = false
+
+[browser]
+gatherUsageStats = false

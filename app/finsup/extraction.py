@@ -12,9 +12,14 @@ Differenze rispetto a `ai_client.ask()`:
 
 Il risultato precompila il form e passa SEMPRE dalla conferma RF-09:
 questo modulo non avvia mai il calcolo.
+
+Cache su disco per hash (file + prompt + schema): un documento gia' letto
+non viene riletto, quindi in demo si puo' "scaldare" la cache prima del
+pitch (scripts/prewarm_extraction.py) e l'estrazione dal vivo e' immediata.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import tempfile
 from pathlib import Path
@@ -34,6 +39,7 @@ FLAGGED_LABEL = "Voce dal documento (descrizione da verificare)"
 # Cartella dedicata dentro la cwd neutra della CLI (vedi ai_client): i file
 # di st.file_uploader vivono in memoria e vanno salvati su disco per Read.
 UPLOAD_DIR = Path(tempfile.gettempdir()) / "finsup_uploads"
+CACHE_DIR = Path(tempfile.gettempdir()) / "finsup_cache"
 
 SCHEMA = {
     "type": "object",
@@ -75,24 +81,31 @@ def extract_budget_items(path: Path) -> dict:
     except Exception as exc:  # file illeggibile: fuori scope gestirlo meglio (§8)
         return _empty(f"file non leggibile ({exc})")
 
-    payload, error = run_cli(
-        prompt,
-        [
-            "--tools", "Read",
-            "--allowedTools", "Read",
-            "--add-dir", str(path.parent),
-            "--json-schema", json.dumps(SCHEMA),
-        ],
-        system_prompt=load_prompt("estrazione"),
-        max_budget_usd=EXTRACTION_BUDGET_USD,
-        timeout_s=EXTRACTION_TIMEOUT_S,
-    )
-    if error:
-        return _empty(error)
-
-    data = payload.get("structured_output")
-    if not isinstance(data, dict):
-        return _empty("risposta senza dati strutturati")
+    system_prompt = load_prompt("estrazione")
+    cache_file = CACHE_DIR / f"{_cache_key(path, system_prompt)}.json"
+    if cache_file.exists():
+        data, cost, cached = json.loads(cache_file.read_text(encoding="utf-8")), 0.0, True
+    else:
+        payload, error = run_cli(
+            prompt,
+            [
+                "--tools", "Read",
+                "--allowedTools", "Read",
+                "--add-dir", str(path.parent),
+                "--json-schema", json.dumps(SCHEMA),
+            ],
+            system_prompt=system_prompt,
+            max_budget_usd=EXTRACTION_BUDGET_USD,
+            timeout_s=EXTRACTION_TIMEOUT_S,
+        )
+        if error:
+            return _empty(error)
+        data = payload.get("structured_output")
+        if not isinstance(data, dict):
+            return _empty("risposta senza dati strutturati")
+        cost, cached = payload.get("total_cost_usd", 0.0), False
+        CACHE_DIR.mkdir(exist_ok=True)
+        cache_file.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
 
     source = path.name
     incomes = [_clean_income(i, source) for i in data.get("incomes", [])]
@@ -111,15 +124,32 @@ def extract_budget_items(path: Path) -> dict:
         "expenses": expenses,
         "terms": terms[:12],
         "flagged": flagged,
+        "cached": cached,
         "error": None,
-        "cost_usd": payload.get("total_cost_usd", 0.0),
+        "cost_usd": cost,
     }
+
+
+def _cache_key(path: Path, system_prompt: str) -> str:
+    digest = hashlib.sha256(path.read_bytes())
+    digest.update(system_prompt.encode("utf-8"))
+    digest.update(json.dumps(SCHEMA, sort_keys=True).encode("utf-8"))
+    return digest.hexdigest()
+
+
+def _read_sheets(path: Path) -> dict[str, pd.DataFrame]:
+    """Solo i valori delle celle. calamine ignora gli stili, che in alcuni
+    file esportati da altri programmi fanno fallire openpyxl (QA-20)."""
+    try:
+        return pd.read_excel(path, sheet_name=None, engine="calamine")
+    except Exception:
+        return pd.read_excel(path, sheet_name=None)
 
 
 def _user_prompt(path: Path) -> str:
     if path.suffix.lower() in SPREADSHEET_SUFFIXES:
         # Read non interpreta i fogli Excel: li passiamo come testo CSV.
-        sheets = pd.read_excel(path, sheet_name=None)
+        sheets = _read_sheets(path)
         text = "\n\n".join(f"## Foglio: {name}\n{df.to_csv(index=False)}" for name, df in sheets.items())
         return f"Contenuto del foglio di calcolo '{path.name}' in formato CSV:\n\n{text}\n\nEstrai le voci."
     return f'Leggi il file "{path}" con il tool Read ed estrai le voci.'
@@ -144,4 +174,4 @@ def _clean_expense(item: dict, source: str) -> dict:
 
 
 def _empty(error: str) -> dict:
-    return {"incomes": [], "expenses": [], "terms": [], "flagged": 0, "error": error, "cost_usd": 0.0}
+    return {"incomes": [], "expenses": [], "terms": [], "flagged": 0, "cached": False, "error": error, "cost_usd": 0.0}

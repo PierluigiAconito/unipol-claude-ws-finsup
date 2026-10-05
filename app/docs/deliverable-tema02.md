@@ -42,7 +42,8 @@ Esempio di singola voce, prima e dopo:
 ## 3. Risk & Clarity Note
 
 **Cosa è stato semplificato**
-- Gergo dei documenti → definizioni di massimo 2 frasi. Per i 16 termini più comuni la definizione è preparata con Claude e rivista a mano; gli altri termini trovati nei documenti li spiega Claude su richiesta, con una sola chiamata.
+- Gergo dei documenti → definizioni di massimo 2 frasi. Per i 26 termini più comuni (busta paga, estratto conto, bolletta) la definizione è preparata con Claude e rivista a mano; gli altri termini trovati nei documenti li spiega Claude su richiesta, con una sola chiamata.
+- Bollette → una voce per servizio (luce, gas, internet) con IVA, accise e oneri inclusi, più i costi accessori (bollo, mora): stesso totale, molte meno righe.
 - Decine di righe sparse → 8 categorie di spesa della specifica, con incidenza in percentuale.
 - Importi annuali e trimestrali → quota mensile, sempre affiancata all'importo originale nella tabella "Come è stato calcolato".
 - Regola 50/30/20: solo la categoria Svago conta come "desideri", tutte le altre come "necessità". La semplificazione è scritta sotto il grafico.
@@ -51,6 +52,7 @@ Esempio di singola voce, prima e dopo:
 - Gli importi: l'estrazione riporta l'importo esatto del documento e la colonna "Da dove arriva" indica il file di origine. I calcoli sono deterministici ([`budget.py`](../finsup/budget.py), coperti da test), non generati dall'AI.
 - Nessuna voce sparisce in silenzio: se un'etichetta estratta fa scattare il guardrail, la voce resta con il suo importo e un'etichetta neutra, segnalata all'utente.
 - Busta paga: conta solo il netto in busta. Lordo e trattenute non diventano uscite, quindi niente doppio conteggio.
+- Stesso importo in due documenti (es. stipendio in busta paga e accredito sull'estratto conto): l'app non unisce nulla da sola, segnala il "possibile doppione" nella conferma e lascia decidere all'utente.
 
 **Come è stata evitata l'ambiguità**
 - Disclaimer "strumento educativo, non consulenza finanziaria" in cima a ogni schermata e nella barra laterale.
@@ -63,8 +65,9 @@ Esempio di singola voce, prima e dopo:
 
 ## Scaletta della demo (circa 2 minuti)
 
+0. **Prima del pitch**: `.venv/Scripts/python app/scripts/prewarm_extraction.py app/demo_assets/*` legge i documenti una volta e salva il risultato in cache (l'estrazione reale richiede 40-100 s per documento). In demo lo stesso file viene riletto all'istante, a costo zero.
 1. **Before**: aprire `estratto_conto_demo.pdf` e `busta_paga_demo.pdf`.
-2. Caricare i 3 file e premere "Leggi i documenti con Claude" (circa 50 s in parallelo). Fallback offline: "Usa i dati di esempio", con gli stessi dati dei documenti.
+2. Caricare i 3 file e premere "Leggi i documenti con Claude". Fallback offline: "Usa i dati di esempio", con gli stessi dati dei documenti.
 3. **Conferma RF-09**: mostrare la colonna "Da dove arriva", correggere una categoria (Ristoranti → Alimentari), poi confermare.
-4. **After**: metriche, torta, barre 50/30/20, glossario, proiezione per 1.000 €.
+4. **After**: metriche, poi le schede Riepilogo (torta + barre), Regola 50/30/20, Parole tecniche, Obiettivo di risparmio (1.000 €).
 5. **RF-06**: "Modifica i dati", cancellare la riga "Collaborazioni occasionali" e confermare. Il saldo diventa −62,54 €, con evidenza delle categorie più pesanti e nessuna indicazione su cosa fare.

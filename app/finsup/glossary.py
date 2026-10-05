@@ -18,7 +18,7 @@ from finsup.ai_client import run_cli
 from finsup.content_guard import find_violations
 from finsup.prompts import load_prompt
 
-MAX_TERMS = 15
+MAX_TERMS = 25
 MAX_AI_TERMS = 10
 
 # termine -> (pattern di riconoscimento, definizione rivista a mano).
@@ -50,11 +50,11 @@ KNOWN_TERMS: dict[str, tuple[str, str]] = {
         "È una tassa dello Stato che la banca trattiene dal conto e versa allo Stato: non è un "
         "guadagno della banca.",
     ),
-    "Addebito SDD": (
-        r"\bsdd\b|addebito diretto",
-        "SDD (dall'inglese SEPA Direct Debit, il sistema europeo dei pagamenti) è l'addebito "
-        "diretto: un pagamento che parte in automatico dal conto alla scadenza, dopo che lo hai "
-        "autorizzato una volta.",
+    "Addebito diretto (SDD/RID)": (
+        r"\bsdd\b|\brid\b|addebito (diretto|automatico)",
+        "È un pagamento che parte in automatico dal conto alla scadenza, dopo che lo hai "
+        "autorizzato una volta. Oggi si chiama SDD (dall'inglese SEPA Direct Debit, il sistema "
+        "europeo dei pagamenti); RID è il nome che si usava prima.",
     ),
     "Contributi INPS": (
         r"\binps\b|contributi previdenziali",
@@ -65,6 +65,16 @@ KNOWN_TERMS: dict[str, tuple[str, str]] = {
         r"addizional[ei]",
         "Sono piccole tasse sul reddito che si aggiungono all'IRPEF e vanno alla Regione e al Comune "
         "in cui vivi; in busta paga vengono trattenute a rate.",
+    ),
+    "Imponibile": (
+        r"imponibile",
+        "È l'importo su cui si calcola una tassa. In busta paga l'imponibile IRPEF è lo stipendio "
+        "lordo meno i contributi previdenziali.",
+    ),
+    "Detrazioni": (
+        r"detrazion[ei]",
+        "Sono sconti sulle tasse: riducono l'IRPEF da pagare. Quelle per lavoro dipendente "
+        "dipendono dal reddito e vengono applicate direttamente in busta paga.",
     ),
     "IRPEF": (
         r"\birpef\b",
@@ -105,6 +115,47 @@ KNOWN_TERMS: dict[str, tuple[str, str]] = {
     "TARI": (
         r"\btari\b",
         "È la tassa sui rifiuti: si paga al Comune per il servizio di raccolta e smaltimento dei rifiuti.",
+    ),
+    "CCNL": (
+        r"\bccnl\b|contratto collettivo",
+        "Contratto Collettivo Nazionale di Lavoro: l'accordo tra sindacati e datori di lavoro che "
+        "fissa per un settore le regole comuni, come livelli, paga minima, ferie e orari.",
+    ),
+    "Scatto di anzianità": (
+        r"scatt[oi] di anzianit",
+        "È un aumento dello stipendio che il contratto di lavoro prevede dopo un certo numero di "
+        "anni passati nella stessa azienda.",
+    ),
+    "Oneri di sistema": (
+        r"oneri di sistema",
+        "Sono una parte della bolletta che non paga l'energia consumata ma costi generali del "
+        "sistema elettrico e del gas fissati per legge, come gli incentivi alle fonti rinnovabili. "
+        "Li pagano tutti i clienti.",
+    ),
+    "Accise": (
+        r"\baccis[ae]\b",
+        "Sono imposte dello Stato sul consumo di energia elettrica e gas: di solito crescono con la "
+        "quantità consumata e sono già comprese nel totale della bolletta.",
+    ),
+    "Quota rete (distribuzione)": (
+        r"quota rete|distribuzione",
+        "È la parte della bolletta che paga il trasporto dell'energia o del gas fino a casa e la "
+        "gestione del contatore. Una parte è fissa: si paga anche se si consuma poco.",
+    ),
+    "Quota potenza": (
+        r"quota potenza|potenza impegnata",
+        "È la parte fissa della bolletta della luce che dipende dalla potenza del contatore (ad "
+        "esempio 3 kW), cioè da quanti apparecchi si possono usare insieme. Non dipende dai consumi.",
+    ),
+    "POD e PDR": (
+        r"\bpod\b|\bpdr\b",
+        "Sono i codici che identificano il punto in cui arriva la fornitura: il POD per la luce, il "
+        "PDR per il gas. Servono a riconoscere la tua fornitura nelle comunicazioni con il fornitore.",
+    ),
+    "IVA": (
+        r"\biva\b",
+        "Imposta sul Valore Aggiunto: una tassa compresa nel prezzo di beni e servizi, che il "
+        "venditore versa allo Stato. La percentuale cambia a seconda del servizio (ad esempio 10% o 22%).",
     ),
 }
 

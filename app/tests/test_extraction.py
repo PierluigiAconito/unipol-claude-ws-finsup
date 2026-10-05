@@ -6,11 +6,36 @@ import pytest
 from finsup import extraction
 
 
+@pytest.fixture(autouse=True)
+def isolated_cache(tmp_path, monkeypatch):
+    monkeypatch.setattr(extraction, "CACHE_DIR", tmp_path / "cache")
+
+
 @pytest.fixture
 def pdf(tmp_path) -> Path:
     path = tmp_path / "doc.pdf"
     path.write_bytes(b"%PDF-1.4 finto")
     return path
+
+
+def test_second_extraction_of_same_file_uses_cache(monkeypatch, pdf):
+    payload = {"total_cost_usd": 0.02, "structured_output": {"incomes": [
+        {"label": "Netto in busta", "amount": 1620, "periodicity": "mensile"}], "expenses": []}}
+    calls = []
+    monkeypatch.setattr(extraction, "run_cli", lambda *a, **k: (calls.append(1), (payload, None))[1])
+    first = extraction.extract_budget_items(pdf)
+    second = extraction.extract_budget_items(pdf)
+    assert len(calls) == 1
+    assert second["cached"] and second["cost_usd"] == 0
+    assert second["incomes"] == first["incomes"]
+
+
+def test_errors_are_not_cached(monkeypatch, pdf):
+    calls = []
+    monkeypatch.setattr(extraction, "run_cli", lambda *a, **k: (calls.append(1), (None, "timeout"))[1])
+    extraction.extract_budget_items(pdf)
+    extraction.extract_budget_items(pdf)
+    assert len(calls) == 2
 
 
 def _fake_cli(payload=None, error=None):

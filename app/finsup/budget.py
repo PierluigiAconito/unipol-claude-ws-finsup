@@ -131,6 +131,23 @@ def months_to_goal(goal: float, monthly_savings: float) -> int | None:
     return math.ceil(goal / monthly_savings)
 
 
+def possible_duplicates(items: list[dict]) -> list[tuple[dict, dict]]:
+    """RF-09: coppie di voci con lo stesso importo lette da file diversi.
+
+    Caso tipico: lo stipendio nella busta paga e il suo accredito
+    nell'estratto conto. Non le unisce da solo: le segnala all'utente,
+    che decide quale tenere nella schermata di conferma.
+    """
+    pairs = []
+    for i, a in enumerate(items):
+        for b in items[i + 1:]:
+            same_amount = _number(a.get("amount")) > 0 and abs(_number(a.get("amount")) - _number(b.get("amount"))) < 0.005
+            different_files = a.get("source") and b.get("source") and a.get("source") != b.get("source")
+            if same_amount and different_files:
+                pairs.append((a, b))
+    return pairs
+
+
 def eur(value: float) -> str:
     """Formato italiano: 1.234,56 € (RF-08, solo EUR)."""
     text = f"{value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")

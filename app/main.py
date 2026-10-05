@@ -31,6 +31,7 @@ from finsup.budget import (
     eur,
     to_monthly,
     months_to_goal,
+    possible_duplicates,
     top_categories,
 )
 
@@ -41,13 +42,21 @@ DISCLAIMER = (
     "il tuo budget: non dice cosa fare con i tuoi soldi, le decisioni restano tue."
 )
 
-# Palette categoriale di riferimento della skill dataviz, validata con
-# validate_palette.js: un colore fisso per categoria (segue la categoria,
-# non il suo peso). Tre slot sono sotto 3:1 di contrasto -> tabella sotto il grafico.
+# Colori allineati alla presentazione (variabili :root del deck). Palette
+# categoriale: apre con verde (--acc-m) e ambra (--amber) del deck, validata
+# con validate_palette.js della skill dataviz sullo sfondo #F4F2ED (CVD minimo
+# 11,6). Un colore fisso per categoria, che segue la categoria e non il suo
+# peso. Alcuni slot sono sotto 3:1 di contrasto: per questo c'e' la tabella
+# sotto il grafico. "Altro" e' nel grigio del deck, come ogni categoria residua.
 CATEGORY_COLORS = dict(zip(CATEGORIES, [
-    "#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948",
+    "#00A880", "#D07010", "#4a3aa7", "#eda100", "#2a78d6", "#e87ba4", "#c2410c", "#B0AFBA",
 ]))
-ACCENT, REFERENCE_GRAY, LABEL_INK = "#2a78d6", "#898781", "#52514e"
+ACCENT = "#006B54"          # --acc del deck: serie singola ed evidenza
+REFERENCE_GRAY = "#B0AFBA"  # --hint: serie di riferimento, de-enfatizzata
+LABEL_INK = "#6A6A7E"       # --muted: etichette dei valori
+SURFACE = "#F4F2ED"         # --bg: separatore tra le fette della ciambella
+# Assi in formato italiano: 1.200 invece di 1,200 (QA-32).
+IT_AXIS = alt.Axis(labelExpr="replace(format(datum.value, ',.0f'), regexp(',', 'g'), '.')")
 SERIES = ["Il tuo budget", "Riferimento 50/30/20"]
 
 STEPS = {"input": "1 · Inserisci le voci", "conferma": "2 · Conferma i dati", "risultati": "3 · Capisci il budget"}
@@ -56,14 +65,45 @@ INCOME_COLUMNS = ["label", "amount", "periodicity", "source"]
 EXPENSE_COLUMNS = ["label", "amount", "category", "type", "periodicity", "source"]
 INCOME_CONFIG = {
     "label": st.column_config.TextColumn("Voce", width="large", required=True),
-    "amount": st.column_config.NumberColumn("Importo (€)", min_value=0.0, step=0.01, format="%.2f €"),
-    "periodicity": st.column_config.SelectboxColumn("Ogni quanto", options=PERIODICITIES, required=True, default="mensile"),
-    "source": st.column_config.TextColumn("Da dove arriva", disabled=True),
+    "amount": st.column_config.NumberColumn(
+        # "euro"/"localized" seguono la lingua del browser (in inglese: €1,620.00); il
+        # formato fisso resta uguale ovunque
+        "Importo (€)", min_value=0.0, step=0.01, format="%.2f €", width="small",
+        help="L'importo come compare nel documento, anche se non è mensile",
+    ),
+    "periodicity": st.column_config.SelectboxColumn(
+        "Ogni quanto", options=PERIODICITIES, required=True, default="mensile", width="small",
+        help="Quanto spesso ricevi o paghi questo importo. FinSup lo riporta al mese "
+             "(annuale ÷ 12, trimestrale ÷ 3)",
+    ),
+    "source": st.column_config.TextColumn(
+        "Da dove arriva", disabled=True, width="small",
+        help="Il documento da cui è stata letta la voce (vuoto se l'hai scritta tu)",
+    ),
 }
 EXPENSE_CONFIG = {
     **INCOME_CONFIG,
-    "category": st.column_config.SelectboxColumn("Categoria", options=CATEGORIES, required=True, default="Altro"),
-    "type": st.column_config.SelectboxColumn("Tipo", options=EXPENSE_TYPES, required=True, default="variabile"),
+    # larghezze in px: le 6 colonne entrano in circa 800 px, cioe' a 1280 con la sidebar (QA-38)
+    "label": st.column_config.TextColumn("Voce", width=230, required=True),
+    "amount": st.column_config.NumberColumn(
+        "Importo (€)", min_value=0.0, step=0.01, format="%.2f €", width=100,
+        help=INCOME_CONFIG["amount"]["help"],
+    ),
+    "category": st.column_config.SelectboxColumn(
+        "Categoria", options=CATEGORIES, required=True, default="Altro", width=150,
+    ),
+    "periodicity": st.column_config.SelectboxColumn(
+        "Ogni quanto", options=PERIODICITIES, required=True, default="mensile", width=105,
+        help=INCOME_CONFIG["periodicity"]["help"],
+    ),
+    "source": st.column_config.TextColumn(
+        "Da dove arriva", disabled=True, width=90, help=INCOME_CONFIG["source"]["help"],
+    ),
+    "type": st.column_config.SelectboxColumn(
+        "Tipo", options=EXPENSE_TYPES, required=True, default="variabile", width=85,
+        help="Fissa: stessa cifra ogni volta (es. affitto). Semi-fissa: cambia poco (es. carburante). "
+             "Variabile: cambia molto (es. spesa, svago)",
+    ),
 }
 
 DEFAULT_INCOMES = [{"label": "Stipendio netto", "amount": 0.0, "periodicity": "mensile"}]
@@ -120,19 +160,24 @@ def _pct(value: float) -> str:
 
 # --------------------------------------------------------------- componenti
 
+def _table_height(rows: int) -> int:
+    """Altezza che mostra tutte le righe + la riga "+": niente scroll interno (QA-38)."""
+    return 35 * (rows + 2) + 3
+
+
 def _edit_tables(prefix: str) -> tuple[list[dict], list[dict]]:
     v = st.session_state.v
     st.markdown("**Entrate**")
     incomes = st.data_editor(
         pd.DataFrame(st.session_state.incomes, columns=INCOME_COLUMNS),
         key=f"{prefix}_inc_{v}", num_rows="dynamic", hide_index=True, width="stretch",
-        column_config=INCOME_CONFIG,
+        height=_table_height(len(st.session_state.incomes)), column_config=INCOME_CONFIG,
     )
     st.markdown("**Uscite**")
     expenses = st.data_editor(
         pd.DataFrame(st.session_state.expenses, columns=EXPENSE_COLUMNS),
         key=f"{prefix}_exp_{v}", num_rows="dynamic", hide_index=True, width="stretch",
-        column_config=EXPENSE_CONFIG,
+        height=_table_height(len(st.session_state.expenses)), column_config=EXPENSE_CONFIG,
     )
     return _records(incomes), _records(expenses)
 
@@ -142,21 +187,26 @@ def _run_extraction(files) -> tuple[list[dict], list[dict]]:
     with ThreadPoolExecutor(max_workers=len(paths)) as pool:
         results = list(pool.map(extraction.extract_budget_items, paths))
 
-    log, incomes, expenses = [], [], []
+    # Messaggi in parole semplici per l'utente; costi ed errori tecnici a parte (QA-38).
+    log, tech, incomes, expenses = [], [], [], []
     for path, result in zip(paths, results):
         if result["error"]:
-            log.append(("warning", f"**{path.name}**: lettura non riuscita ({result['error']}). "
-                                   "Puoi inserire le voci a mano o usare i dati di esempio."))
+            log.append(("warning", f"**{path.name}**: non sono riuscito a leggere questo documento. "
+                                   "Puoi inserire le voci a mano qui sotto o usare i dati di esempio."))
+            tech.append(f"{path.name}: {result['error']}")
             continue
         incomes += result["incomes"]
         expenses += result["expenses"]
         st.session_state.doc_terms += result["terms"]
         log.append(("success", f"**{path.name}**: trovate {len(result['incomes'])} entrate e "
-                               f"{len(result['expenses'])} uscite · costo ${result['cost_usd']:.3f}"))
+                               f"{len(result['expenses'])} uscite."))
+        origin = "già letto in precedenza, risultato riutilizzato" if result["cached"] else "letto da Claude"
+        tech.append(f"{path.name}: {origin} · costo ${result['cost_usd']:.3f}")
         if result["flagged"]:
             log.append(("warning", f"**{path.name}**: {result['flagged']} voci hanno una descrizione da "
                                    f"verificare («{extraction.FLAGGED_LABEL}»): l'importo è quello del documento."))
     st.session_state.extraction_log = log
+    st.session_state.extraction_tech = tech
     return incomes, expenses
 
 
@@ -167,7 +217,6 @@ def _sidebar() -> None:
         for key, label in STEPS.items():
             st.markdown(f"**▶ {label}**" if key == st.session_state.step else label)
         st.divider()
-        st.info(DISCLAIMER)
         if st.button("Ricomincia da capo", width="stretch"):
             st.session_state.clear()
             st.rerun()
@@ -193,6 +242,10 @@ def step_input() -> None:
         use_demo = demo_col.button("Usa i dati di esempio (persona fittizia)", width="stretch")
         for level, message in st.session_state.extraction_log:
             getattr(st, level)(message)
+        if st.session_state.get("extraction_tech"):
+            with st.expander("Dettagli tecnici (uso dell'AI)"):
+                for line in st.session_state.extraction_tech:
+                    st.caption(line)
 
     st.subheader("✍️ Inserisci o completa le voci")
     st.caption(
@@ -234,7 +287,18 @@ def step_confirm() -> None:
             "documenti originali, la lettura automatica può sbagliare.",
             icon="🔎",
         )
+    duplicates_box = st.container()  # riempito dopo, con i valori modificati in diretta
     incomes, expenses = _edit_tables("conferma")
+    with duplicates_box:
+        for kind, items in (("entrata", incomes), ("uscita", expenses)):
+            for a, b in possible_duplicates(items):
+                st.warning(
+                    f"**Possibile doppione**: «{a['label']}» ({a['source']}) e «{b['label']}» "
+                    f"({b['source']}) hanno lo stesso importo, {eur(float(a['amount']))}. Se sono la "
+                    f"stessa {kind} (es. lo stipendio in busta paga e il suo accredito sul conto), "
+                    "cancellane una: altrimenti viene contata due volte.",
+                    icon="👯",
+                )
     preview = compute_budget(incomes, expenses)
     st.caption(
         f"Anteprima riportata al mese: entrate {eur(preview.total_income)} · uscite {eur(preview.total_expenses)}"
@@ -275,18 +339,25 @@ def step_results() -> None:
     if s.savings <= 0:
         _negative_savings(s)
 
-    left, right = st.columns(2, gap="large")
-    with left:
-        _category_chart(s)
-    with right:
-        _income_vs_expenses_chart(s)
+    # Schede invece di una pagina lunga piu' di 3.000 px (QA-38).
+    summary, benchmark, words, goal, details = st.tabs([
+        "📊 Riepilogo", "⚖️ Regola 50/30/20", "📖 Parole tecniche", "🎯 Obiettivo di risparmio",
+        "🧮 Come è stato calcolato",
+    ])
+    with summary:
+        left, right = st.columns([3, 2], gap="large")
+        with left:
+            _category_chart(s)
+        with right:
+            _income_vs_expenses_chart(s)
+    with benchmark:
         _benchmark_section(s)
-
-    st.divider()
-    _glossary_section(data)
-    st.divider()
-    _goal_section(s)
-    _calculation_details(data, s)
+    with words:
+        _glossary_section(data)
+    with goal:
+        _goal_section(s)
+    with details:
+        _calculation_details(data, s)
 
     if st.button("← Modifica i dati"):
         _go("conferma")
@@ -318,13 +389,14 @@ def _category_chart(s) -> None:
         return
     df = pd.DataFrame(rows)
     present = list(df["Categoria"])
-    donut = alt.Chart(df).mark_arc(innerRadius=70, outerRadius=130, stroke="#ffffff", strokeWidth=2).encode(
+    donut = alt.Chart(df).mark_arc(innerRadius=62, outerRadius=110, stroke=SURFACE, strokeWidth=2).encode(
         theta=alt.Theta("Importo:Q", stack=True),
         order=alt.Order("ordine:Q"),
         color=alt.Color(
             "Categoria:N",
             scale=alt.Scale(domain=present, range=[CATEGORY_COLORS[c] for c in present]),
-            legend=alt.Legend(title=None, orient="right", labelLimit=200),
+            # legenda a destra: con la colonna 3/5 entra a 1280 px senza sovrapporsi (QA-33)
+            legend=alt.Legend(title=None, orient="right", labelLimit=170),
         ),
         tooltip=[
             alt.Tooltip("Categoria:N"),
@@ -348,7 +420,8 @@ def _income_vs_expenses_chart(s) -> None:
     bars = alt.Chart(df).mark_bar(cornerRadiusEnd=4, color=ACCENT).encode(
         y=alt.Y("Voce:N", title=None, sort=None, scale=alt.Scale(paddingInner=0.4)),
         # margine a destra per l'etichetta con l'importo
-        x=alt.X("Euro:Q", title="€ al mese", scale=alt.Scale(domain=[0, max(df["Euro"].max(), 1) * 1.25])),
+        x=alt.X("Euro:Q", title="€ al mese", axis=IT_AXIS,
+                scale=alt.Scale(domain=[0, max(df["Euro"].max(), 1) * 1.25])),
         tooltip=[alt.Tooltip("Voce:N"), alt.Tooltip("Etichetta:N", title="Al mese")],
     )
     labels = bars.mark_text(align="left", dx=6, color=LABEL_INK, fontSize=13).encode(text="Etichetta:N")
@@ -357,17 +430,18 @@ def _income_vs_expenses_chart(s) -> None:
 
 def _benchmark_section(s) -> None:
     """RF-05: confronto informativo con la regola 50/30/20 (grafico + testo fisso)."""
-    st.subheader("Confronto con la regola 50/30/20")
     rows = benchmark_503020(s)
     df = pd.DataFrame(
         [{"Voce": r["bucket"], "Serie": SERIES[0], "Euro": r["actual"], "Quota": r["actual_pct"]} for r in rows]
         + [{"Voce": r["bucket"], "Serie": SERIES[1], "Euro": r["reference"], "Quota": r["reference_pct"]} for r in rows]
     )
     df["Etichetta"] = df["Euro"].map(eur)
-    chart = alt.Chart(df).mark_bar(cornerRadiusEnd=4).encode(
-        x=alt.X("Voce:N", title=None, sort=list(BENCHMARK_503020), axis=alt.Axis(labelAngle=0)),
-        xOffset=alt.XOffset("Serie:N", sort=SERIES, scale=alt.Scale(paddingInner=0.08)),
-        y=alt.Y("Euro:Q", title="€ al mese"),
+    df["Percentuale"] = df["Quota"].map(lambda q: f"{q * 100:.0f}%")
+    x = alt.X("Voce:N", title=None, sort=list(BENCHMARK_503020), axis=alt.Axis(labelAngle=0, labelFontSize=13))
+    x_offset = alt.XOffset("Serie:N", sort=SERIES, scale=alt.Scale(paddingInner=0.08))
+    bars = alt.Chart(df).mark_bar(cornerRadiusEnd=4).encode(
+        x=x, xOffset=x_offset,
+        y=alt.Y("Euro:Q", title="€ al mese", axis=IT_AXIS),
         color=alt.Color(
             "Serie:N", scale=alt.Scale(domain=SERIES, range=[ACCENT, REFERENCE_GRAY]),
             legend=alt.Legend(title=None, orient="top"),
@@ -377,15 +451,26 @@ def _benchmark_section(s) -> None:
             alt.Tooltip("Quota:Q", format=".1%", title="Sulle entrate"),
         ],
     )
-    st.altair_chart(chart.properties(height=300), width="stretch")
+    # etichetta con la % sulle entrate sopra ogni barra (QA-42)
+    labels = alt.Chart(df).mark_text(dy=-8, color=LABEL_INK, fontSize=12).encode(
+        x=x, xOffset=x_offset, y="Euro:Q", text="Percentuale:N",
+    )
+    chart_col, text_col = st.columns([3, 2], gap="large")
+    chart_col.altair_chart((bars + labels).properties(height=320), width="stretch")
 
     by_bucket = {r["bucket"]: r["actual_pct"] for r in rows}
-    st.markdown(
-        "La **regola 50/30/20** è un riferimento educativo molto diffuso: divide le entrate del mese in "
-        "**50%** per le necessità, **30%** per i desideri e **20%** per il risparmio. "
-        f"Nel tuo budget le necessità sono il **{_pct(by_bucket['Necessità'])}** delle entrate, i desideri "
-        f"il **{_pct(by_bucket['Desideri'])}** e il risparmio il **{_pct(by_bucket['Risparmio'])}**."
-    )
+    with text_col:
+        st.markdown(
+            "La **regola 50/30/20** è un riferimento educativo molto diffuso: divide le entrate del mese "
+            "in tre parti. Nel tuo budget:\n\n"
+            f"- **Necessità: {_pct(by_bucket['Necessità'])}** delle entrate (riferimento 50%)\n"
+            f"- **Desideri: {_pct(by_bucket['Desideri'])}** (riferimento 30%)\n"
+            f"- **Risparmio: {_pct(by_bucket['Risparmio'])}** (riferimento 20%)"
+        )
+        _benchmark_note()
+
+
+def _benchmark_note() -> None:
     st.caption(
         "È solo un termine di paragone per leggere i tuoi numeri, non un obiettivo da raggiungere: ogni "
         "situazione personale è diversa. Per il confronto FinSup conta come desideri solo la categoria "
@@ -396,15 +481,18 @@ def _benchmark_section(s) -> None:
 
 def _glossary_section(data: dict) -> None:
     """RF-04: glossario contestuale, generato da Claude solo su richiesta."""
-    st.subheader("📖 Le parole tecniche dei tuoi documenti")
     labels = [r.get("label") or "" for r in data["incomes"] + data["expenses"]]
     terms = glossary.detect_terms(labels, st.session_state.doc_terms)
     if not terms:
         st.caption("Nessun termine tecnico riconosciuto nelle voci confermate.")
         return
 
+    context = dict(terms)
     for item in glossary.known_definitions(terms):
-        st.markdown(f"**{item['term']}** — {item['text']}")
+        # dove compare il termine: nelle voci confermate o solo nel testo dei documenti (QA-40)
+        where = context[item["term"]]
+        where = "nei documenti caricati" if where == "documento caricato" else f"nella voce «{where}»"
+        st.markdown(f"**{item['term']}** — {item['text']}  \n<small>Compare {where}.</small>", unsafe_allow_html=True)
     st.caption("Definizioni preparate con Claude e riviste a mano dal team: spiegano il significato, non cosa fare.")
 
     others = glossary.unknown_terms(terms)
@@ -424,21 +512,20 @@ def _glossary_section(data: dict) -> None:
         return
 
     if result["error"]:
-        st.caption(f"Spiegazioni di Claude non disponibili in questo momento ({result['error']}).")
+        st.caption("Le spiegazioni di Claude non sono disponibili in questo momento.")
     for item in result["items"]:
         st.markdown(f"**{item['term']}** — {item['text']}")
     if result["blocked"]:
         st.caption(f"Non mostrate perché non rispettavano il vincolo educativo: {', '.join(result['blocked'])}.")
     if result["items"]:
-        st.caption(
-            f"Spiegazioni generate da Claude ({DEFAULT_MODEL}) e controllate dal filtro anti-consigli "
-            f"· costo ${result['cost_usd']:.3f}."
-        )
+        st.caption("Spiegazioni generate da Claude e controllate dal filtro anti-consigli prima di essere mostrate.")
+    with st.expander("Dettagli tecnici (uso dell'AI)"):
+        st.caption(f"Modello {DEFAULT_MODEL} · una sola chiamata · costo ${result['cost_usd']:.3f}"
+                   + (f" · errore: {result['error']}" if result["error"] else ""))
 
 
 def _goal_section(s) -> None:
     """RF-07: proiezione puramente matematica dell'obiettivo di risparmio."""
-    st.subheader("🎯 Simula un obiettivo di risparmio")
     goal = st.number_input("Cifra che vorresti mettere da parte (€)", min_value=0.0, value=1000.0, step=100.0)
     months = months_to_goal(goal, s.savings)
     if months is None:
@@ -464,30 +551,31 @@ def _goal_section(s) -> None:
 
 def _calculation_details(data: dict, s) -> None:
     """RF-03: come e' stato ottenuto il risultato, voce per voce."""
-    with st.expander("Come è stato calcolato"):
-        st.markdown(
-            "Ogni importo viene riportato al mese: un importo **annuale** si divide per 12, uno "
-            "**trimestrale** per 3. Poi: **risparmio = entrate al mese − uscite al mese** "
-            f"= {eur(s.total_income)} − {eur(s.total_expenses)} = **{eur(s.savings)}**."
-        )
-        rows = [
-            {"Tipo": "Entrata", "Voce": r.get("label"), "Importo": eur(float(r.get("amount") or 0)),
-             "Ogni quanto": r.get("periodicity"), "Al mese": eur(to_monthly(r.get("amount"), r.get("periodicity"))),
-             "Categoria": ""}
-            for r in data["incomes"]
-        ] + [
-            {"Tipo": "Uscita", "Voce": r.get("label"), "Importo": eur(float(r.get("amount") or 0)),
-             "Ogni quanto": r.get("periodicity"), "Al mese": eur(to_monthly(r.get("amount"), r.get("periodicity"))),
-             "Categoria": r.get("category")}
-            for r in data["expenses"]
-        ]
-        st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
+    st.markdown(
+        "Ogni importo viene riportato al mese: un importo **annuale** si divide per 12, uno "
+        "**trimestrale** per 3. Poi: **risparmio = entrate al mese − uscite al mese** "
+        f"= {eur(s.total_income)} − {eur(s.total_expenses)} = **{eur(s.savings)}**."
+    )
+    rows = [
+        {"Tipo": "Entrata", "Voce": r.get("label"), "Importo": eur(float(r.get("amount") or 0)),
+         "Ogni quanto": r.get("periodicity"), "Al mese": eur(to_monthly(r.get("amount"), r.get("periodicity"))),
+         "Categoria": ""}
+        for r in data["incomes"]
+    ] + [
+        {"Tipo": "Uscita", "Voce": r.get("label"), "Importo": eur(float(r.get("amount") or 0)),
+         "Ogni quanto": r.get("periodicity"), "Al mese": eur(to_monthly(r.get("amount"), r.get("periodicity"))),
+         "Categoria": r.get("category")}
+        for r in data["expenses"]
+    ]
+    st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch", height=_table_height(len(rows)))
 
 
 # --------------------------------------------------------------------- main
 
 _init_state()
 _sidebar()
+# Con Segoe UI (font del deck) i valori a 4 colonne venivano troncati a 1280 px.
+st.markdown("<style>[data-testid='stMetricValue'] { font-size: 1.85rem; }</style>", unsafe_allow_html=True)
 st.title("FinSup — capire il proprio budget")
 st.info(DISCLAIMER, icon="ℹ️")
 {"input": step_input, "conferma": step_confirm, "risultati": step_results}[st.session_state.step]()

@@ -14,16 +14,24 @@ def test_detects_terms_in_demo_labels():
 def test_doc_terms_are_mapped_to_known_terms_without_duplicates():
     terms = glossary.detect_terms(
         ["Rata (TAEG 8,45%)"],
-        ["TAEG", "TFR (Trattamento di Fine Rapporto)", "Addizionale regionale IRPEF", "CCNL"],
+        ["TAEG", "TFR (Trattamento di Fine Rapporto)", "Addizionale regionale IRPEF", "RID bancario", "Contingenza"],
     )
     names = [t for t, _ in terms]
-    assert names == ["TAEG", "TFR", "Addizionale regionale e comunale", "CCNL"]
-    assert glossary.unknown_terms(terms) == [("CCNL", "documento caricato")]
+    assert names == ["TAEG", "TFR", "Addizionale regionale e comunale", "Addebito diretto (SDD/RID)", "Contingenza"]
+    assert glossary.unknown_terms(terms) == [("Contingenza", "documento caricato")]
+
+
+def test_bill_terms_from_real_documents_are_known():
+    # QA-35: termini della bolletta reale coperti da definizione rivista (anche offline)
+    labels = ["Accise e oneri di sistema energia", "Canone mensile di distribuzione (quota rete)",
+              "Quota potenza impegnata (3 kW)", "IVA 22%", "POD energia"]
+    names = {t for t, _ in glossary.detect_terms(labels)}
+    assert {"Accise", "Oneri di sistema", "Quota rete (distribuzione)", "Quota potenza", "IVA", "POD e PDR"} <= names
 
 
 def test_known_terms_cost_no_ai_call(monkeypatch):
     monkeypatch.setattr(glossary, "run_cli", lambda *a, **k: (_ for _ in ()).throw(AssertionError("AI chiamata")))
-    items = glossary.known_definitions([("TAEG", "x"), ("CCNL", "y")])
+    items = glossary.known_definitions([("TAEG", "x"), ("Contingenza", "y")])
     assert [i["term"] for i in items] == ["TAEG"]
 
 

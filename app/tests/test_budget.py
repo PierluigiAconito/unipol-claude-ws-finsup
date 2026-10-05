@@ -5,6 +5,7 @@ from finsup.budget import (
     benchmark_503020,
     compute_budget,
     months_to_goal,
+    possible_duplicates,
     to_monthly,
     top_categories,
 )
@@ -108,6 +109,21 @@ def test_demo_without_side_income_shows_negative_savings():
     s = compute_budget(incomes, demo_data.EXPENSES)
     assert s.savings == pytest.approx(-62.54)
     assert top_categories(s)[0][0] == "Abitazione"
+
+
+def test_possible_duplicates_across_files():
+    # QA-23: stipendio in busta paga e accredito nell'estratto conto
+    salary = {"label": "Netto in busta", "amount": 2576.34, "source": "busta_paga.pdf"}
+    credit = {"label": "Accredito stipendio", "amount": 2576.34, "source": "estratto_conto.xlsx"}
+    other = {"label": "Affitto percepito", "amount": 400, "source": "estratto_conto.xlsx"}
+    manual = {"label": "Stipendio", "amount": 2576.34, "source": None}
+    assert possible_duplicates([salary, credit, other, manual]) == [(salary, credit)]
+
+
+def test_same_amount_in_same_file_is_not_a_duplicate():
+    a = {"label": "Palestra", "amount": 39, "source": "estratto.pdf"}
+    b = {"label": "Corso", "amount": 39, "source": "estratto.pdf"}
+    assert possible_duplicates([a, b]) == []
 
 
 @pytest.mark.parametrize(
