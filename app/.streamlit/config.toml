@@ -10,6 +10,10 @@ secondaryBackgroundColor = "#ECEAE3" # --surf2 (sidebar, campi)
 textColor = "#1A1A28"                # --text
 font = "Segoe UI, system-ui, sans-serif"
 baseRadius = "12px"                  # --r
+# riquadri informativi (disclaimer, proiezione) nel verde del deck invece del blu Streamlit (GFX-34)
+blueColor = "#006B54"                # --acc
+blueBackgroundColor = "#E5F2EE"      # --acc-l
+blueTextColor = "#006B54"            # --acc
 
 [client]
 toolbarMode = "minimal"   # niente Deploy/Rerun durante la demo

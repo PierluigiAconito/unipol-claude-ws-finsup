@@ -186,6 +186,7 @@ def _edit_tables(prefix: str, deletable: bool = False) -> tuple[list[dict], list
     ):
         st.markdown(f"**{title}**")
         df = pd.DataFrame(items, columns=columns)
+        df["source"] = df["source"].fillna("")  # niente "None" per le voci scritte a mano (GFX-32)
         if deletable:
             df.insert(0, "remove", False)
             config = {**DELETE_COLUMN, **config}
@@ -204,18 +205,23 @@ def _add_item_form(incomes: list[dict], expenses: list[dict], *, step: str, expa
     Con questo e le tabelle l'intero budget si inserisce a mano: l'app funziona
     anche senza leggere documenti, quindi senza AI.
     """
-    with st.expander("➕ Aggiungi una voce", expanded=expanded):
-        kind = st.radio("Che cosa vuoi aggiungere?", ["Uscita", "Entrata"], horizontal=True, key="add_kind")
+    # Chiavi con versione: dopo ogni aggiunta i campi ripartono vuoti (GFX-33).
+    n = st.session_state.setdefault("add_v", 0)
+    with st.expander("➕ Aggiungi una voce", expanded=expanded or st.session_state.get("add_open", False)):
+        kind = st.radio("Che cosa vuoi aggiungere?", ["Uscita", "Entrata"], horizontal=True, key=f"add_kind_{n}")
         label_col, amount_col, period_col = st.columns([3, 1, 1])
-        label = label_col.text_input("Descrizione", placeholder="Es. regalo di compleanno, ripetizioni", key="add_label")
-        amount = amount_col.number_input("Importo (€)", min_value=0.0, step=1.0, key="add_amount")
-        periodicity = period_col.selectbox("Ogni quanto", PERIODICITIES, key="add_period")
+        label = label_col.text_input("Descrizione", placeholder="Es. regalo di compleanno, ripetizioni",
+                                     key=f"add_label_{n}")
+        amount = amount_col.number_input("Importo (€)", min_value=0.0, step=1.0, key=f"add_amount_{n}")
+        periodicity = period_col.selectbox("Ogni quanto", PERIODICITIES, key=f"add_period_{n}")
         if kind == "Uscita":
             cat_col, type_col = st.columns(2)
-            category = cat_col.selectbox("Categoria", CATEGORIES, index=len(CATEGORIES) - 1, key="add_cat")
+            category = cat_col.selectbox("Categoria", CATEGORIES, index=len(CATEGORIES) - 1, key=f"add_cat_{n}")
+            # chiave legata alla categoria: cambiandola, il tipo riparte da quello tipico
+            # (Abitazione -> fissa), invece di restare "variabile" (GFX-33)
             expense_type = type_col.selectbox("Tipo", EXPENSE_TYPES, index=EXPENSE_TYPES.index(DEFAULT_TYPE[category]),
-                                              key="add_type")
-        if st.button("Aggiungi", disabled=not label or amount <= 0):
+                                              key=f"add_type_{n}_{category}")
+        if st.button("Aggiungi", disabled=not label or amount <= 0, key=f"add_button_{n}"):
             item = {"label": label, "amount": amount, "periodicity": periodicity, "source": None}
             # le modifiche gia' fatte nelle tabelle restano: si parte dai valori correnti
             st.session_state.incomes, st.session_state.expenses = incomes, expenses
@@ -223,8 +229,8 @@ def _add_item_form(incomes: list[dict], expenses: list[dict], *, step: str, expa
                 st.session_state.expenses = expenses + [{**item, "category": category, "type": expense_type}]
             else:
                 st.session_state.incomes = incomes + [item]
-            for key in ("add_label", "add_amount"):
-                st.session_state.pop(key, None)
+            st.session_state.add_v = n + 1
+            st.session_state.add_open = True  # resta aperto per aggiungere altre voci
             _go(step)
 
 
@@ -275,7 +281,8 @@ def _duplicates_table() -> None:
 # numerati come .step-n.
 HEADER_CSS = """<style>
 [data-testid='stMetricValue'] { font-size: 1.85rem; }
-.bf-title { font-size: 2.7rem !important; font-weight: 800; letter-spacing: -1.5px; line-height: 1.15;
+[data-testid='stMainBlockContainer'] { padding-top: 1.5rem; }  /* grafici sopra la piega a 1280x720 (GFX-30) */
+.bf-title { font-size: 2.2rem !important; font-weight: 800; letter-spacing: -1.5px; line-height: 1.15;
             color: #1A1A28; margin: 0; }
 .bf-title span { color: #006B54; }
 .bf-lead { color: #6A6A7E; font-size: 1.05rem !important; margin: .2rem 0 .6rem 0; }
@@ -304,9 +311,12 @@ def _header() -> None:
     flow_col, restart_col = st.columns([5, 1], vertical_alignment="center")
     flow_col.markdown(f"<div class='bf-flow'>{'<span class=bf-sep>→</span>'.join(steps)}</div>",
                       unsafe_allow_html=True)
-    if restart_col.button("Ricomincia da capo", width="stretch"):
-        st.session_state.clear()
-        st.rerun()
+    # conferma prima di cancellare: un clic sbagliato in demo non perde i dati (GFX-36)
+    with restart_col.popover("Ricomincia da capo", width="stretch"):
+        st.write("Cancello tutte le voci inserite e i documenti caricati?")
+        if st.button("Sì, ricomincia", type="primary", width="stretch"):
+            st.session_state.clear()
+            st.rerun()
 
 
 # -------------------------------------------------------------- passo 1
@@ -354,7 +364,11 @@ def step_input() -> None:
                                                             "ho contate una volta sola (le trovi in giallo nella conferma)."))
         _go("input")
     if st.button("Vai alla conferma →", type="primary"):
-        st.session_state.incomes, st.session_state.expenses = incomes, expenses
+        # le righe-modello rimaste a 0 € non servono nella conferma (GFX-31)
+        def filled(r):
+            return (r.get("amount") or 0) > 0 or r.get("source")
+        st.session_state.incomes = [r for r in incomes if filled(r)]
+        st.session_state.expenses = [r for r in expenses if filled(r)]
         _go("conferma")
 
 
@@ -499,14 +513,18 @@ def _income_vs_expenses_chart(s) -> None:
         {"Voce": "Uscite", "Euro": s.total_expenses},
     ])
     df["Etichetta"] = df["Euro"].map(eur)
-    bars = alt.Chart(df).mark_bar(cornerRadiusEnd=4, color=ACCENT).encode(
+    base = alt.Chart(df).encode(
         y=alt.Y("Voce:N", title=None, sort=None, scale=alt.Scale(paddingInner=0.4)),
         # margine a destra per l'etichetta con l'importo
         x=alt.X("Euro:Q", title="€ al mese", axis=IT_AXIS,
                 scale=alt.Scale(domain=[0, max(df["Euro"].max(), 1) * 1.25])),
         tooltip=[alt.Tooltip("Voce:N"), alt.Tooltip("Etichetta:N", title="Al mese")],
     )
-    labels = bars.mark_text(align="left", dx=6, color=LABEL_INK, fontSize=13).encode(text="Etichetta:N")
+    # entrate nel verde del deck, uscite nell'ambra (--amber): due cose diverse, due colori (GFX-37)
+    bars = base.mark_bar(cornerRadiusEnd=4).encode(color=alt.Color(
+        "Voce:N", scale=alt.Scale(domain=["Entrate", "Uscite"], range=[ACCENT, "#D07010"]), legend=None,
+    ))
+    labels = base.mark_text(align="left", dx=6, color=LABEL_INK, fontSize=13).encode(text="Etichetta:N")
     st.altair_chart((bars + labels).properties(height=140), width="stretch")
 
 
@@ -518,7 +536,7 @@ def _benchmark_section(s) -> None:
         + [{"Voce": r["bucket"], "Serie": SERIES[1], "Euro": r["reference"], "Quota": r["reference_pct"]} for r in rows]
     )
     df["Etichetta"] = df["Euro"].map(eur)
-    df["Percentuale"] = df["Quota"].map(lambda q: f"{q * 100:.0f}%")
+    df["Percentuale"] = df["Quota"].map(_pct)  # stesso formato del testo accanto (GFX-37)
     x = alt.X("Voce:N", title=None, sort=list(BENCHMARK_503020), axis=alt.Axis(labelAngle=0, labelFontSize=13))
     x_offset = alt.XOffset("Serie:N", sort=SERIES, scale=alt.Scale(paddingInner=0.08))
     bars = alt.Chart(df).mark_bar(cornerRadiusEnd=4).encode(

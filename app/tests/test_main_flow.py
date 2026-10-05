@@ -55,14 +55,26 @@ def test_custom_expense_can_be_added_in_confirmation():
     at.session_state.incomes, at.session_state.expenses = demo_data.INCOMES, demo_data.EXPENSES
     at.session_state.step = "conferma"
     at.run()
-    at.text_input(key="add_label").input("Ripetizioni di inglese")
-    at.number_input(key="add_amount").set_value(80.0)
+    next(t for t in at.text_input if t.label == "Descrizione").input("Ripetizioni di inglese")
+    next(n for n in at.number_input if n.label == "Importo (€)").set_value(80.0)
     at.run()  # come nel browser: il pulsante si abilita dopo aver compilato i campi
     at = _click(at, "Aggiungi")
     assert at.session_state.step == "conferma"
     added = [e for e in at.session_state.expenses if e["label"] == "Ripetizioni di inglese"]
     assert added and added[0]["amount"] == 80.0 and added[0]["category"] == "Altro"
     assert len(at.session_state.expenses) == len(demo_data.EXPENSES) + 1
+    # GFX-33: dopo l'aggiunta i campi ripartono vuoti
+    assert next(t for t in at.text_input if t.label == "Descrizione").value == ""
+
+
+def test_added_housing_expense_takes_the_typical_type():
+    # GFX-33: scegliendo Abitazione il tipo diventa "fissa", non resta "variabile"
+    at = _app()
+    at.session_state.step = "conferma"
+    at.run()
+    next(s for s in at.selectbox if s.label == "Categoria").set_value("Abitazione")
+    at.run()
+    assert next(s for s in at.selectbox if s.label == "Tipo").value == "fissa"
 
 
 def test_results_without_confirmation_redirect_to_confirmation():
