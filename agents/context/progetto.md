@@ -2,13 +2,13 @@
 
 Prototipo e2e sviluppato durante l'**Hagenthon** (Accenture Application Engineering) — Tema 02: **Inclusione Finanziaria**.
 
-Documento unico di riferimento per il team: consolida regole del workshop, tema ufficiale scelto e stato dei requisiti funzionali. Per il dettaglio completo dei 3 temi (incluso ciò che non abbiamo scelto) vedi [docs/01-temi-della-sfida.md](docs/01-temi-della-sfida.md).
+Documento unico di riferimento per il team: consolida regole del workshop, tema ufficiale scelto e stato dei requisiti funzionali. Per il dettaglio completo dei 3 temi (incluso ciò che non abbiamo scelto) vedi [temi-della-sfida.md](temi-della-sfida.md).
 
 ## Team e vincoli di tempo
 
 - **Team**: 2 persone
 - **Durata**: 3 ore di sviluppo totali
-- **Deliverable**: prototipo software e2e funzionante + presentazione di 5 minuti (demo inclusa) + repo pubblico GitHub
+- **Deliverable**: prototipo software e2e funzionante + presentazione HTML di 5 minuti (demo inclusa, brand Accenture) + repo pubblico GitHub organizzato in `app/`, `agents/`, `presentation/` (vedi [regole-e-valutazione.md](regole-e-valutazione.md#modalità-di-consegna-slide-faculty-repository-finale))
 
 ## Tema scelto: Inclusione Finanziaria
 
@@ -39,7 +39,7 @@ Documento unico di riferimento per il team: consolida regole del workshop, tema 
 
 ## Requisiti funzionali
 
-✅ Arrivati — vedi [docs/02-requisiti-funzionali.md](docs/02-requisiti-funzionali.md) per il dettaglio completo (fonte canonica). Sintesi:
+✅ Arrivati — vedi [app/docs/requisiti-funzionali.md](../../app/docs/requisiti-funzionali.md) per il dettaglio completo (fonte canonica). Sintesi:
 
 - **Scenario**: gestione del budget personale (uno dei 5 scenari ammessi dal tema)
 - **Persona**: bassa alfabetizzazione finanziaria, riceve documenti (busta paga, bollette, estratto conto) con gergo tecnico che non comprende
@@ -50,15 +50,15 @@ Documento unico di riferimento per il team: consolida regole del workshop, tema 
 
 | Criterio | Dove viene mostrato nel repo |
 |---|---|
-| Qualità tecnica | struttura del codice, test, README |
-| Uso consapevole dell'AI (token ridotti) | `CLAUDE.md` snello + nota strategia AI (da aggiungere) |
-| Verifica umana | checklist/log di review (da aggiungere) |
-| Evidenza pattern (skill, rules, hooks) | `.claude/` — CLAUDE.md, skill dedicate, hook di guardrail sui contenuti finanziari |
-| Strategia di applicazione AI | nota dedicata su dove l'AI contribuisce nella soluzione e dove serve l'umano |
+| Qualità tecnica | `app/finsup/`, `app/tests/` (`pytest app`), README |
+| Uso consapevole dell'AI (token ridotti) | `CLAUDE.md` snello, [uso-token.md](../workflows/uso-token.md) |
+| Verifica umana | RF-09 in app, [verifica-umana.md](../workflows/verifica-umana.md), comando `/demo-ready` |
+| Evidenza pattern (skill, rules, hooks) | [agents/README.md](../README.md): rules, hook, skill, subagent, comando, prompt |
+| Strategia di applicazione AI | [strategia-ai.md](../workflows/strategia-ai.md) |
 
 **Valutazione**: soggettiva (faculty) + oggettiva (agente AI su portale, legge il repo) → la somma determina la classifica. Il repo va quindi ottimizzato per essere leggibile sia da umani che da un agente valutatore automatico.
 
 ## Note di provenienza
 
 - Regole di workshop e criteri di valutazione: kickoff chat con il team + brief ufficiale faculty (`hagenthon-temi-sfida-3.html`)
-- Dettaglio completo dei 3 temi (anche quelli non scelti): [docs/01-temi-della-sfida.md](docs/01-temi-della-sfida.md)
+- Dettaglio completo dei 3 temi (anche quelli non scelti): [temi-della-sfida.md](temi-della-sfida.md)

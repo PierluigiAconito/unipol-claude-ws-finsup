@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BudgetFacile</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+:root {
+  --bg:      #F4F2ED;
+  --surf:    #FFFFFF;
+  --surf2:   #ECEAE3;
+  --text:    #1A1A28;
+  --muted:   #6A6A7E;
+  --hint:    #B0AFBA;
+  --acc:     #006B54;
+  --acc-l:   #E5F2EE;
+  --acc-m:   #00A880;
+  --red:     #C43B3B;
+  --red-l:   #FAEAEA;
+  --amber:   #D07010;
+  --amber-l: #FDF3E5;
+  --r: 12px;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; overflow:hidden; background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+
+/* ── CHROME ── */
+#bar { position:fixed; top:0; left:0; height:3px; background:var(--acc); transition:width .4s ease; z-index:300; }
+
+#chrome {
+  position:fixed; bottom:0; left:0; right:0; height:52px;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 28px; z-index:300;
+  background:linear-gradient(to top, var(--bg) 60%, transparent);
+}
+
+.nav-btn {
+  background:var(--surf); border:1px solid var(--surf2);
+  color:var(--muted); padding:7px 18px; border-radius:8px;
+  cursor:pointer; font-size:13px; font-family:inherit;
+  transition:all .18s; box-shadow:0 1px 3px rgba(0,0,0,.06);
+}
+.nav-btn:hover:not(:disabled) { border-color:var(--acc); color:var(--acc); }
+.nav-btn:disabled { opacity:.3; cursor:default; }
+.nav-btn.annex-btn { background:var(--acc-l); border-color:rgba(0,107,84,.2); color:var(--acc); font-weight:600; }
+.nav-btn.annex-btn:hover:not(:disabled) { background:var(--acc); color:#fff; }
+
+#dots { display:flex; gap:5px; align-items:center; }
+.dot { width:6px; height:6px; border-radius:50%; background:var(--hint); cursor:pointer; transition:all .25s; }
+.dot.on { background:var(--acc); width:18px; border-radius:3px; }
+.dot.annex-dot { background:rgba(0,107,84,.3); }
+.dot.annex-dot.on { background:var(--acc); }
+
+#counter { font-size:12px; color:var(--muted); min-width:48px; text-align:right; font-variant-numeric:tabular-nums; }
+
+/* ── DECK ── */
+#deck { position:relative; width:100%; height:calc(100vh - 52px); overflow:hidden; }
+.slide { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:flex-start; padding:56px 80px 24px; opacity:0; transform:translateX(24px); transition:opacity .35s ease, transform .35s ease; pointer-events:none; }
+.slide.active { opacity:1; transform:translateX(0); pointer-events:all; }
+
+/* ── LAYOUT VARIANTS ── */
+.slide-split { flex-direction:row; align-items:stretch; padding:0; gap:0; }
+.split-left  { flex:0 0 42%; background:var(--acc); color:#fff; padding:56px 52px; display:flex; flex-direction:column; justify-content:center; }
+.split-right { flex:1; padding:56px 64px; display:flex; flex-direction:column; justify-content:center; overflow:auto; }
+.split-left .muted { color:rgba(255,255,255,.65); }
+
+.slide-full { justify-content:center; align-items:center; text-align:center; }
+
+/* ── TYPE ── */
+.eyebrow { font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--acc); margin-bottom:16px; }
+.eyebrow.white { color:rgba(255,255,255,.75); }
+
+h1 { font-size:58px; font-weight:800; line-height:1.04; letter-spacing:-2px; margin-bottom:18px; }
+h1.hero { font-size:72px; letter-spacing:-3px; }
+h2 { font-size:38px; font-weight:800; line-height:1.1; letter-spacing:-1.5px; margin-bottom:24px; }
+h2.sm { font-size:30px; letter-spacing:-1px; }
+.lead { font-size:18px; line-height:1.7; color:var(--muted); max-width:540px; margin-bottom:32px; }
+.lead.white { color:rgba(255,255,255,.75); }
+.big-num { font-size:80px; font-weight:900; letter-spacing:-4px; line-height:1; color:var(--acc); }
+
+/* ── TAGS / PILLS ── */
+.pill { display:inline-flex; align-items:center; gap:6px; background:var(--acc-l); color:var(--acc); font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; padding:4px 12px; border-radius:100px; margin-bottom:22px; }
+.pill.white { background:rgba(255,255,255,.15); color:#fff; border:1px solid rgba(255,255,255,.25); }
+
+/* ── CARDS ── */
+.card { background:var(--surf); border-radius:var(--r); padding:22px 24px; border:1px solid rgba(0,0,0,.06); }
+.card.green { border-left:3px solid var(--acc); }
+.card.red { border-left:3px solid var(--red); }
+
+/* ── GRID ── */
+.g2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; width:100%; }
+.g3 { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; width:100%; }
+
+/* ── PILLAR CARD ── */
+.pillar { background:var(--surf); border:1px solid rgba(0,0,0,.06); border-radius:var(--r); padding:20px 22px; }
+.pillar i { font-size:22px; color:var(--acc); margin-bottom:10px; display:block; }
+.pillar h3 { font-size:15px; font-weight:700; margin-bottom:6px; }
+.pillar p { font-size:13px; color:var(--muted); line-height:1.5; }
+
+/* ── STEP FLOW ── */
+.steps { display:flex; gap:0; width:100%; margin-top:20px; }
+.step { flex:1; position:relative; padding:0 12px; }
+.step:not(:last-child)::after { content:''; position:absolute; right:-1px; top:22px; width:24px; height:2px; background:var(--surf2); }
+.step-n { width:44px; height:44px; border-radius:50%; background:var(--acc-l); border:2px solid var(--acc); display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:800; color:var(--acc); margin:0 auto 10px; }
+.step h4 { font-size:13px; font-weight:700; text-align:center; margin-bottom:4px; }
+.step p { font-size:12px; color:var(--muted); text-align:center; line-height:1.4; }
+
+/* ── BEFORE / AFTER ── */
+.ba { display:grid; grid-template-columns:1fr 40px 1fr; gap:14px; align-items:center; width:100%; }
+.ba-box { background:var(--surf); border-radius:var(--r); padding:18px 20px; height:280px; overflow:hidden; }
+.ba-box.before { border:1px solid rgba(196,59,59,.25); }
+.ba-box.after  { border:1px solid rgba(0,107,84,.25); }
+.ba-lbl { font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-bottom:10px; }
+.ba-box.before .ba-lbl { color:var(--red); }
+.ba-box.after  .ba-lbl { color:var(--acc); }
+.mono { font-family:'Courier New',monospace; font-size:10.5px; line-height:1.85; color:var(--muted); }
+.hl { background:var(--red-l); color:var(--red); border-radius:3px; padding:0 3px; }
+.ba-arrow { text-align:center; font-size:24px; color:var(--acc-m); }
+
+/* ── BUDGET RESULT (after) ── */
+.budget-row { display:flex; justify-content:space-between; align-items:center; font-size:13px; padding:5px 0; border-bottom:1px solid var(--surf2); }
+.budget-row:last-child { border:none; }
+.budget-row .lbl { color:var(--muted); }
+.budget-row .val { font-weight:600; }
+.budget-row.total { font-size:15px; font-weight:700; padding-top:10px; }
+.budget-row.total .val { color:var(--acc); }
+.cat-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px; }
+
+/* ── STATEMENT SLIDE ── */
+.statement { font-size:28px; font-weight:700; line-height:1.45; max-width:700px; letter-spacing:-.5px; }
+.statement em { color:var(--acc); font-style:normal; }
+.quote-mark { font-size:72px; color:var(--acc-l); line-height:.5; margin-bottom:8px; font-family:Georgia,serif; font-weight:900; }
+
+/* ── ANNEX HEADER ── */
+.annex-label { font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--hint); background:var(--surf2); border-radius:6px; padding:3px 10px; margin-bottom:20px; display:inline-block; }
+
+/* ── FEAT LIST ── */
+.feat-list { display:flex; flex-direction:column; gap:8px; width:100%; }
+.feat { display:flex; align-items:flex-start; gap:12px; background:var(--surf); border:1px solid rgba(0,0,0,.05); border-radius:10px; padding:12px 16px; }
+.feat i { font-size:18px; color:var(--acc); flex-shrink:0; margin-top:1px; }
+.feat h4 { font-size:13px; font-weight:700; margin-bottom:2px; }
+.feat p { font-size:12px; color:var(--muted); }
+
+/* ── DONT LIST ── */
+.dont-list { display:flex; flex-direction:column; gap:8px; width:100%; }
+.dont { display:flex; align-items:center; gap:10px; background:var(--surf); border:1px solid rgba(196,59,59,.12); border-radius:10px; padding:11px 15px; font-size:13px; }
+.dont-x { color:var(--red); font-size:15px; flex-shrink:0; }
+
+/* ── RISK TWO COL ── */
+.risk-cols { display:grid; grid-template-columns:1fr 1fr; gap:24px; width:100%; }
+.rc-head { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:12px; }
+.rc-head.simp { color:var(--acc); }
+.rc-head.pres { color:var(--red); }
+.rc-item { display:flex; gap:8px; align-items:flex-start; font-size:13px; color:var(--muted); margin-bottom:9px; line-height:1.45; }
+.rc-dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; margin-top:5px; }
+.simp .rc-dot { background:var(--acc); }
+.pres .rc-dot { background:var(--red); }
+
+/* ── COVER TAGLINE ── */
+.tagline-row { display:flex; gap:12px; flex-wrap:wrap; margin-top:32px; }
+.tag-chip { font-size:12px; color:var(--muted); padding:5px 14px; border-radius:7px; background:var(--surf); border:1px solid rgba(0,0,0,.07); }
+
+/* ── DEMO PLACEHOLDER ── */
+.demo-shell { width:100%; background:var(--surf); border-radius:16px; border:1px solid rgba(0,0,0,.08); overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,.06); }
+.demo-bar-f { background:var(--surf2); padding:9px 14px; border-bottom:1px solid rgba(0,0,0,.06); display:flex; align-items:center; gap:7px; }
+.dm-dot { width:9px; height:9px; border-radius:50%; }
+.dm-url { flex:1; background:var(--bg); border:1px solid rgba(0,0,0,.07); border-radius:5px; padding:3px 10px; font-size:11px; color:var(--muted); font-family:monospace; }
+.demo-body-f { height:340px; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:14px; }
+.demo-body-f p { font-size:14px; color:var(--muted); }
+.demo-cta { background:var(--acc); color:#fff; border:none; padding:9px 24px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; transition:all .2s; }
+.demo-cta:hover { background:#005240; }
+</style>
+</head>
+<body>
+
+<div id="bar"></div>
+<div id="deck">
+
+<!-- ═══ 0 — COVER ═══ -->
+<div class="slide active" data-i="0">
+  <div class="pill"><i class="ti ti-chart-pie-2" aria-hidden="true"></i> Educazione finanziaria</div>
+  <h1>Budget<br><span style="color:var(--acc)">Facile</span></h1>
+  <p class="lead">Dall&rsquo;ammasso di documenti a un budget chiaro in pochi minuti.<br>Nessuna consulenza, nessun giudizio — solo consapevolezza.</p>
+  <div class="tagline-row">
+    <span class="tag-chip"><i class="ti ti-robot" aria-hidden="true"></i> Powered by Claude AI</span>
+    <span class="tag-chip"><i class="ti ti-users" aria-hidden="true"></i> Accenture Team</span>
+    <span class="tag-chip"><i class="ti ti-calendar" aria-hidden="true"></i> Hagenthon 2025</span>
+  </div>
+</div>
+
+<!-- ═══ 1 — IL PROBLEMA ═══ -->
+<div class="slide slide-split" data-i="1">
+  <div class="split-left">
+    <div class="eyebrow white">Il problema</div>
+    <div class="big-num" style="color:#fff; font-size:96px;">?</div>
+    <h2 style="color:#fff; font-size:28px; letter-spacing:-.5px; margin-top:8px; line-height:1.3;">
+      &ldquo;Quanto posso<br>risparmiare<br>questo mese?&rdquo;
+    </h2>
+    <p class="lead white" style="font-size:15px; margin-top:16px; margin-bottom:0;">
+      Una domanda semplice,<br>senza risposta chiara.
+    </p>
+  </div>
+  <div class="split-right">
+    <div class="eyebrow">Chi è l&rsquo;utente</div>
+    <h2 class="sm">Bassa alfabetizzazione<br>finanziaria, alta frustrazione</h2>
+    <p class="lead" style="margin-bottom:20px; font-size:16px;">
+      Ogni mese riceve buste paga, bollette ed estratti conto pieni di <strong>gergo tecnico</strong>. I dati sono sparsi, incomprensibili, non aggregati.
+    </p>
+    <div style="display:flex; flex-direction:column; gap:10px; width:100%;">
+      <div class="card green">
+        <div style="font-size:12px; font-weight:700; color:var(--acc); margin-bottom:4px;">Dove si blocca</div>
+        <div style="font-size:14px; color:var(--muted); line-height:1.5;">Non riesce ad aggregare entrate e uscite in un budget comprensibile né a interpretare le singole voci dei documenti.</div>
+      </div>
+      <div class="card green">
+        <div style="font-size:12px; font-weight:700; color:var(--acc); margin-bottom:4px;">Perché è urgente</div>
+        <div style="font-size:14px; color:var(--muted); line-height:1.5;">Senza un budget chiaro non può prendere decisioni quotidiane informate — è il prerequisito di qualsiasi altra scelta finanziaria.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 2 — LA SOLUZIONE ═══ -->
+<div class="slide" data-i="2">
+  <div class="eyebrow">La soluzione</div>
+  <h2>Un&rsquo;app che traduce i tuoi<br>documenti in un budget chiaro</h2>
+  <div class="g2" style="margin-top:4px;">
+    <div class="pillar">
+      <i class="ti ti-file-import" aria-hidden="true"></i>
+      <h3>Legge i tuoi documenti</h3>
+      <p>Carica PDF o XLS così come li hai. Claude estrae entrate e uscite senza template fissi.</p>
+    </div>
+    <div class="pillar">
+      <i class="ti ti-layout-dashboard" aria-hidden="true"></i>
+      <h3>Costruisce il budget mensile</h3>
+      <p>Aggrega tutto: entrate, uscite per categoria, risparmio netto. Normalizza automaticamente periodicità diverse.</p>
+    </div>
+    <div class="pillar">
+      <i class="ti ti-vocabulary" aria-hidden="true"></i>
+      <h3>Traduce il gergo tecnico</h3>
+      <p>TAEG, IRPEF, interessi di mora — ogni termine viene spiegato in parole semplici, in contesto.</p>
+    </div>
+    <div class="pillar">
+      <i class="ti ti-chart-pie" aria-hidden="true"></i>
+      <h3>Mostra grafici e proiezioni</h3>
+      <p>Grafico ripartizione spese, confronto con benchmark 50/30/20, simulatore obiettivo di risparmio.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 3 — COME FUNZIONA ═══ -->
+<div class="slide" data-i="3">
+  <div class="eyebrow">Come funziona</div>
+  <h2>4 passi per avere un budget chiaro</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-n">1</div>
+      <h4>Carica i documenti</h4>
+      <p>PDF o XLS delle tue buste paga, bollette, estratti conto — qualsiasi formato.</p>
+    </div>
+    <div class="step">
+      <div class="step-n">2</div>
+      <h4>Claude estrae i dati</h4>
+      <p>AI legge e struttura automaticamente entrate e uscite, con importo e categoria.</p>
+    </div>
+    <div class="step">
+      <div class="step-n">3</div>
+      <h4>Tu controlli tutto</h4>
+      <p>Schermata di conferma: modifica ogni voce prima che parta il calcolo.</p>
+    </div>
+    <div class="step">
+      <div class="step-n">4</div>
+      <h4>Vedi il tuo budget</h4>
+      <p>Riepilogo, grafici, glossario e simulatore obiettivo.</p>
+    </div>
+  </div>
+  <div class="card green" style="margin-top:28px; padding:14px 20px; width:100%;">
+    <p style="font-size:14px; color:var(--muted); line-height:1.5;">
+      <i class="ti ti-shield-check" aria-hidden="true" style="color:var(--acc); margin-right:6px;"></i>
+      <strong>Nessun calcolo parte in automatico.</strong> La schermata di conferma è sempre obbligatoria — gli importi estratti sono visibili e modificabili prima di procedere.
+    </p>
+  </div>
+</div>
+
+<!-- ═══ 4 — BEFORE / AFTER ═══ -->
+<div class="slide" data-i="4">
+  <div class="eyebrow">Before / after</div>
+  <h2 style="margin-bottom:16px;">Dal documento originale al budget leggibile</h2>
+  <div class="ba">
+    <div class="ba-box before">
+      <div class="ba-lbl">Prima — documenti originali</div>
+      <div class="mono">
+        CEDOLINO PAGA — Giu 2025<br>
+        Retrib. lorda: &nbsp; &nbsp; 2.100,00 €<br>
+        <span class="hl">Contr. INPS c/dip. (9,19%)</span>: -193 €<br>
+        <span class="hl">IRPEF lorda</span>: &nbsp; &nbsp; &nbsp; -456,00 €<br>
+        <span class="hl">Detr. lav. dip.</span>: &nbsp; &nbsp; &nbsp; +97,00 €<br>
+        <span class="hl">Addiz. regionale</span>: &nbsp; -28,00 €<br>
+        <span class="hl">Addiz. comunale</span>: &nbsp; &nbsp;-11,00 €<br>
+        Netto a pagare: <strong>1.509,00 €</strong><br><br>
+        BOLLETTA GAS — Giu 2025<br>
+        Quota fissa: &nbsp; &nbsp; &nbsp; 6,00 €<br>
+        <span class="hl">Oneri di sistema</span>: &nbsp; 14,30 €<br>
+        <span class="hl">Accisa gas metano</span>: &nbsp;8,10 €<br>
+        <span class="hl">IVA 22%</span>: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 12,40 €<br>
+        Totale bolletta: <strong>89,20 €</strong>
+      </div>
+    </div>
+    <div class="ba-arrow">&#8594;</div>
+    <div class="ba-box after">
+      <div class="ba-lbl">Dopo — il tuo budget chiaro</div>
+      <div class="budget-row" style="padding-top:0;">
+        <span class="lbl">Stipendio netto</span>
+        <span class="val" style="color:var(--acc);">+ 1.509 €</span>
+      </div>
+      <div style="font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--hint); margin:10px 0 6px;">Uscite mensili</div>
+      <div class="budget-row"><span class="lbl"><span class="cat-dot" style="background:#0070C0;"></span>Casa &amp; utenze</span><span class="val">680 €</span></div>
+      <div class="budget-row"><span class="lbl"><span class="cat-dot" style="background:#D07010;"></span>Trasporti</span><span class="val">120 €</span></div>
+      <div class="budget-row"><span class="lbl"><span class="cat-dot" style="background:#A100C0;"></span>Alimentari</span><span class="val">350 €</span></div>
+      <div class="budget-row"><span class="lbl"><span class="cat-dot" style="background:#606070;"></span>Altro</span><span class="val">200 €</span></div>
+      <div class="budget-row total"><span>Risparmio mensile</span><span class="val">+ 159 €</span></div>
+      <div style="font-size:11px; color:var(--muted); margin-top:8px;">Tasso di risparmio: <strong style="color:var(--acc);">10,5%</strong> &nbsp;·&nbsp; Benchmark 50/30/20 consiglia ≥ 20%</div>
+      <div style="margin-top:10px; background:var(--acc-l); border-radius:8px; padding:8px 12px; font-size:11px; color:var(--acc);">
+        <strong>Glossario:</strong> IRPEF = imposta nazionale sul reddito delle persone fisiche · Oneri di sistema = spese per rete e incentivi
+      </div>
+    </div>
+  </div>
+  <p style="font-size:11px; color:var(--hint); margin-top:10px;">Valori fittizi a scopo illustrativo. Le voci in rosso sono i termini tecnici spiegati dal glossario contestuale.</p>
+</div>
+
+<!-- ═══ 5 — DEMO ═══ -->
+<div class="slide slide-full" data-i="5">
+  <div class="eyebrow">Demo live</div>
+  <h2 style="align-self:center; margin-bottom:16px;">Proviamola insieme</h2>
+  <div class="demo-shell" style="max-width:680px; width:100%;">
+    <div class="demo-bar-f">
+      <div class="dm-dot" style="background:#FF5F57;"></div>
+      <div class="dm-dot" style="background:#FFBD2E;"></div>
+      <div class="dm-dot" style="background:#28CA41;"></div>
+      <div class="dm-url" id="demo-url-lbl">localhost:8501</div>
+    </div>
+    <div class="demo-body-f">
+      <i class="ti ti-layout-dashboard" aria-hidden="true" style="font-size:44px; color:var(--surf2);"></i>
+      <p>L&rsquo;app si apre in una nuova scheda del browser.</p>
+      <button class="demo-cta" onclick="openApp()">
+        <i class="ti ti-external-link" aria-hidden="true"></i> Apri app
+      </button>
+    </div>
+  </div>
+  <p style="font-size:12px; color:var(--muted); margin-top:14px;">Scenario: persona con basso risparmio — caricamento busta paga + bolletta</p>
+</div>
+
+<!-- ══════════════════════════════════════════
+     ANNEX SLIDES (numerazione A1/A2/A3)
+══════════════════════════════════════════ -->
+
+<!-- ═══ A0 — Annex intro ═══ -->
+<div class="slide slide-full" data-i="6" data-annex="true">
+  <div style="text-align:center;">
+    <div class="annex-label">Materiale supplementare</div>
+    <h2 style="align-self:center; margin-bottom:12px;">Annex</h2>
+    <p class="lead" style="text-align:center; margin:0 auto 28px;">Deliverable della challenge e dettagli tecnici.</p>
+    <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+      <div class="card" style="padding:14px 20px; text-align:left; width:200px; cursor:pointer;" onclick="goTo(7)">
+        <div style="font-size:11px; font-weight:700; color:var(--acc); margin-bottom:6px; letter-spacing:1px; text-transform:uppercase;">A.1</div>
+        <div style="font-size:14px; font-weight:600;">Funzionalità<br>dettagliate</div>
+      </div>
+      <div class="card" style="padding:14px 20px; text-align:left; width:200px; cursor:pointer;" onclick="goTo(8)">
+        <div style="font-size:11px; font-weight:700; color:var(--acc); margin-bottom:6px; letter-spacing:1px; text-transform:uppercase;">A.2</div>
+        <div style="font-size:14px; font-weight:600;">Conformità<br>alla challenge</div>
+      </div>
+      <div class="card" style="padding:14px 20px; text-align:left; width:200px; cursor:pointer;" onclick="goTo(9)">
+        <div style="font-size:11px; font-weight:700; color:var(--acc); margin-bottom:6px; letter-spacing:1px; text-transform:uppercase;">A.3</div>
+        <div style="font-size:14px; font-weight:600;">Risk &amp;<br>Clarity Note</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ A1 — Funzionalità ═══ -->
+<div class="slide" data-i="7" data-annex="true">
+  <div class="annex-label">Annex A.1</div>
+  <h2 class="sm">Funzionalità chiave</h2>
+  <div class="feat-list">
+    <div class="feat">
+      <i class="ti ti-file-text" aria-hidden="true"></i>
+      <div><h4>Estrazione AI da documenti reali</h4><p>PDF e XLS caricati dall&rsquo;utente → Claude estrae voci strutturate (importo, categoria, periodicità) → form precompilato editabile</p></div>
+    </div>
+    <div class="feat">
+      <i class="ti ti-calculator" aria-hidden="true"></i>
+      <div><h4>Budget mensile con normalizzazione periodicità</h4><p>Importi annuali e trimestrali normalizzati su base mensile automaticamente. Riepilogo: entrate, uscite per categoria, risparmio netto.</p></div>
+    </div>
+    <div class="feat">
+      <i class="ti ti-vocabulary" aria-hidden="true"></i>
+      <div><h4>Glossario contestuale in linguaggio semplice</h4><p>Ogni termine tecnico trovato nei documenti viene spiegato in parole semplici da Claude. Comprensione, non prescrizione.</p></div>
+    </div>
+    <div class="feat">
+      <i class="ti ti-chart-donut" aria-hidden="true"></i>
+      <div><h4>Grafici + benchmark 50/30/20 + simulatore obiettivo</h4><p>Grafico a torta per categoria di spesa, barre per confronto con benchmark. Simulatore: quanti mesi per raggiungere il mio obiettivo?</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ A2 — Conformità ═══ -->
+<div class="slide" data-i="8" data-annex="true">
+  <div class="annex-label">Annex A.2 — Conformità alla challenge</div>
+  <h2 class="sm">Cosa non fa BudgetFacile</h2>
+  <div class="dont-list">
+    <div class="dont"><i class="ti ti-x dont-x" aria-hidden="true"></i>Non fornisce consulenza finanziaria personalizzata né raccomandazioni di investimento (no ETF, fondi, azioni).</div>
+    <div class="dont"><i class="ti ti-x dont-x" aria-hidden="true"></i>Non prescrive tagli di spesa specifici: evidenzia i dati, la decisione resta interamente dell&rsquo;utente.</div>
+    <div class="dont"><i class="ti ti-x dont-x" aria-hidden="true"></i>Non è un chatbot generico: ogni interazione è legata a una funzione applicativa concreta.</div>
+    <div class="dont"><i class="ti ti-x dont-x" aria-hidden="true"></i>Non altera gli importi originali: i dati estratti sono sempre visibili e modificabili prima del calcolo (RF-09).</div>
+    <div class="dont"><i class="ti ti-x dont-x" aria-hidden="true"></i>Non avvia nessun calcolo automatico: la schermata di conferma è obbligatoria.</div>
+  </div>
+  <div class="card green" style="margin-top:16px; padding:13px 18px; width:100%;">
+    <p style="font-size:13px; color:var(--muted);">
+      <i class="ti ti-shield" aria-hidden="true" style="color:var(--acc); margin-right:6px;"></i>
+      Il disclaimer &ldquo;Strumento educativo — non consulenza finanziaria&rdquo; è visibile su ogni schermata di risultato.
+    </p>
+  </div>
+</div>
+
+<!-- ═══ A3 — Risk & Clarity ═══ -->
+<div class="slide" data-i="9" data-annex="true">
+  <div class="annex-label">Annex A.3 — Risk &amp; Clarity Note</div>
+  <h2 class="sm">Trasparenza sulle semplificazioni</h2>
+  <div class="risk-cols">
+    <div class="simp">
+      <div class="rc-head simp">Cosa è stato semplificato</div>
+      <div class="rc-item"><div class="rc-dot"></div><span>Linguaggio tecnico (TAEG, trattenute, oneri) → spiegazioni in parole semplici generate da Claude</span></div>
+      <div class="rc-item"><div class="rc-dot"></div><span>Voci sparse su più documenti → aggregazione in categorie leggibili</span></div>
+      <div class="rc-item"><div class="rc-dot"></div><span>Periodicità diverse → normalizzazione automatica su base mensile</span></div>
+      <div class="rc-item"><div class="rc-dot"></div><span>Confronto benchmark 50/30/20 presentato come dato informativo, non prescrittivo</span></div>
+    </div>
+    <div class="pres">
+      <div class="rc-head pres">Cosa non è stato alterato</div>
+      <div class="rc-item"><div class="rc-dot"></div><span>Gli importi reali dai documenti sono sempre visibili e modificabili (RF-09)</span></div>
+      <div class="rc-item"><div class="rc-dot"></div><span>Risparmio negativo evidenziato senza nascondere la realtà (RF-06)</span></div>
+      <div class="rc-item"><div class="rc-dot"></div><span>Significato originale: le spiegazioni affiancano i termini tecnici, non li sostituiscono</span></div>
+      <div class="rc-item"><div class="rc-dot"></div><span>Responsabilità decisionale: l&rsquo;app mostra i dati, l&rsquo;utente decide</span></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:18px; padding:13px 18px; width:100%; border-left:3px solid var(--acc);">
+    <p style="font-size:13px; color:var(--muted); line-height:1.5;">
+      <strong>Come si è evitata l&rsquo;ambiguità:</strong> nessuna raccomandazione implicita nel tono delle spiegazioni; disclaimer esplicito su ogni schermata; conferma obbligatoria prima del calcolo.
+    </p>
+  </div>
+</div>
+
+</div><!-- end #deck -->
+
+<div id="chrome">
+  <button class="nav-btn" id="btn-prev" disabled>&#8592;</button>
+  <div id="dots"></div>
+  <button class="nav-btn" id="btn-next">&#8594;</button>
+  <span id="counter" style="margin-left:12px;">1 / 6</span>
+  <button class="nav-btn annex-btn" id="btn-annex" style="margin-left:20px;">Annex &#8594;</button>
+</div>
+
+<script>
+const APP_URL = 'http://localhost:8501'; // app Streamlit: streamlit run app/main.py (porta predefinita)
+
+const MAIN_COUNT  = 6;
+const TOTAL_COUNT = 10;
+const slides = document.querySelectorAll('.slide');
+const bar    = document.getElementById('bar');
+const btnP   = document.getElementById('btn-prev');
+const btnN   = document.getElementById('btn-next');
+const btnA   = document.getElementById('btn-annex');
+const ctr    = document.getElementById('counter');
+const dotsEl = document.getElementById('dots');
+
+let cur = 0;
+
+// Build dots: 6 main + separator + 4 annex
+const MAIN_SLIDES  = [0,1,2,3,4,5];
+const ANNEX_SLIDES = [6,7,8,9];
+
+MAIN_SLIDES.forEach(i => {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' on' : '');
+  d.addEventListener('click', () => goTo(i));
+  dotsEl.appendChild(d);
+});
+
+// separator
+const sep = document.createElement('div');
+sep.style.cssText = 'width:1px; height:10px; background:var(--surf2); margin:0 4px;';
+dotsEl.appendChild(sep);
+
+ANNEX_SLIDES.forEach(i => {
+  const d = document.createElement('div');
+  d.className = 'dot annex-dot';
+  d.addEventListener('click', () => goTo(i));
+  dotsEl.appendChild(d);
+});
+
+function getDot(i) {
+  if (MAIN_SLIDES.includes(i)) return dotsEl.children[i];
+  if (ANNEX_SLIDES.includes(i)) return dotsEl.children[MAIN_COUNT + 1 + ANNEX_SLIDES.indexOf(i)];
+}
+
+function goTo(n) {
+  const prev = getDot(cur);
+  if (prev) prev.classList.remove('on');
+  slides[cur].classList.remove('active');
+
+  cur = Math.max(0, Math.min(TOTAL_COUNT - 1, n));
+
+  slides[cur].classList.add('active');
+  const nd = getDot(cur);
+  if (nd) nd.classList.add('on');
+
+  const isAnnex = ANNEX_SLIDES.includes(cur);
+  bar.style.width = isAnnex
+    ? (((ANNEX_SLIDES.indexOf(cur) + 1) / ANNEX_SLIDES.length) * 100) + '%'
+    : (((cur + 1) / MAIN_COUNT) * 100) + '%';
+
+  if (isAnnex) {
+    const ai = ANNEX_SLIDES.indexOf(cur);
+    ctr.textContent = 'A' + ai + ' / ' + (ANNEX_SLIDES.length - 1);
+    btnA.textContent = '← Presentazione';
+    btnA.onclick = () => goTo(5);
+  } else {
+    ctr.textContent = (cur + 1) + ' / ' + MAIN_COUNT;
+    btnA.textContent = 'Annex →';
+    btnA.onclick = () => goTo(6);
+  }
+
+  btnP.disabled = cur === 0;
+  btnN.disabled = cur === TOTAL_COUNT - 1;
+}
+
+btnP.addEventListener('click', () => goTo(cur - 1));
+btnN.addEventListener('click', () => goTo(cur + 1));
+btnA.addEventListener('click', () => goTo(6));
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goTo(cur + 1); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); goTo(cur - 1); }
+  if (e.key === 'Home') { e.preventDefault(); goTo(0); }
+  if (e.key === 'End')  { e.preventDefault(); goTo(TOTAL_COUNT - 1); }
+});
+
+function openApp() { window.open(APP_URL, '_blank'); }
+
+goTo(0);
+</script>
+</body>
+</html>

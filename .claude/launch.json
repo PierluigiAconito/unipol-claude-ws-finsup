@@ -6,6 +6,19 @@
       "runtimeExecutable": ".venv/Scripts/streamlit.exe",
       "runtimeArgs": ["run", "app/main.py", "--server.headless", "true"],
       "port": 8501
+    },
+    {
+      "name": "finsup-app-dev",
+      "runtimeExecutable": ".venv/Scripts/streamlit.exe",
+      "runtimeArgs": ["run", "app/main.py", "--server.headless", "true", "--server.port", "8502"],
+      "port": 8502,
+      "autoPort": false
+    },
+    {
+      "name": "presentation",
+      "runtimeExecutable": ".venv/Scripts/python.exe",
+      "runtimeArgs": ["-m", "http.server", "8765", "--directory", "presentation"],
+      "port": 8765
     }
   ]
 }

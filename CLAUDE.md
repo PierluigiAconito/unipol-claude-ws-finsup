@@ -1,31 +1,24 @@
-# Regole operative del progetto
+# FinSup: regole operative per Claude Code
 
-Prototipo Hagenthon, Tema 02: Inclusione Finanziaria. Dettagli completi in [PROJECT.md](PROJECT.md) — qui solo le regole, non il contesto (per restare leggero ad ogni sessione).
+Prototipo Hagenthon, Tema 02 (Inclusione Finanziaria): app Streamlit che aiuta una persona con bassa alfabetizzazione finanziaria a **capire** il proprio budget mensile, partendo dai documenti che ha già (busta paga, bollette, estratto conto). Contesto completo in [agents/context/progetto.md](agents/context/progetto.md): qui solo regole, per restare leggero a ogni sessione. Non incollarlo nei prompt.
 
-## Vincolo di dominio (non negoziabile)
+## Run · Test
 
-Questa applicazione **non deve mai dare consigli finanziari**: niente raccomandazioni di investimento, consulenza personalizzata, indicazioni su cosa comprare/vendere/scegliere. Solo spiegazione e comprensione. Ogni testo generato dall'AI e destinato all'utente finale passa dal guardrail in `app/content_guard.py` prima di essere mostrato o committato.
+```bash
+pip install -r app/requirements.txt
+streamlit run app/main.py      # http://localhost:8501
+pytest app                     # guardrail, hook, logica di calcolo
+```
 
-## Stack
+## Mappa del repo (struttura di consegna obbligatoria)
 
-- Python 3.13, Streamlit per la UI, nessun backend separato
-- GenAI: CLI locale `claude -p` (vedi `app/ai_client.py`), non l'SDK Anthropic con API key — riusa l'autenticazione Claude Code già presente sulla macchina
-- Se la CLI locale non è autenticata o non risponde, `ai_client.ask()` ritorna una risposta mock (`mocked: True`): l'app deve restare utilizzabile anche offline
+- `app/`: la soluzione. `main.py` (UI Streamlit), `finsup/` (logica), `tests/`, `docs/requisiti-funzionali.md` (la specifica, fonte di verità)
+- `agents/`: la struttura agentica. `instructions/` (queste regole), `skills/`, `subagents/`, `commands/`, `hooks/`, `prompts/` (system prompt usati dall'app a runtime), `workflows/`, `context/`
+- `presentation/`: presentazione HTML (brand Accenture)
+- `.claude/`: solo collegamenti. Claude Code scopre skill, subagent e comandi solo lì, ma la fonte unica è `agents/`: mai logica duplicata in `.claude/`
 
-## Uso consapevole dell'AI (token ridotti)
+## Regole (modulari, caricate sempre)
 
-- Modello di default: Haiku (il più economico adeguato al task), non Sonnet/Opus salvo necessità reale
-- `--max-budget-usd` sempre impostato sulle chiamate CLI
-- System prompt brevi e mirati, mai l'intero PROJECT.md incollato in un prompt
-- Preferire skill/pattern mirati a chiamate monolitiche quando si estende la soluzione
-
-## Verifica umana
-
-- Ogni nuova funzionalità che genera testo rivolto all'utente finale va rivista a mano prima di essere considerata demo-ready, non solo testata automaticamente
-- Annotare le review in `docs/04-verifica-umana.md` (cosa è stato controllato, esito)
-
-## Pattern attivi in questo repo (evidenza per la valutazione)
-
-- **Rules**: questo file
-- **Hook**: `.claude/hooks/check_financial_advice.py`, eseguito su Write/Edit per bloccare contenuti che violano il vincolo di dominio prima ancora del commit
-- **Skill**: `.claude/skills/finsup-copy-check/` per revisionare un testo educativo rispetto a "niente consigli" + "semplificare senza tradire"
+@agents/instructions/dominio.md
+@agents/instructions/uso-ai.md
+@agents/instructions/processo.md
