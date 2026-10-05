@@ -1,4 +1,4 @@
-"""FinSup — capire il proprio budget (Hagenthon, Tema 02: Inclusione Finanziaria).
+"""BudgetFacile: capire il proprio budget (Hagenthon, Tema 02: Inclusione Finanziaria).
 
 Flusso in tre passi, come da requisiti (app/docs/requisiti-funzionali.md):
 1. inserimento: form guidato (RF-01a) e/o documenti letti da Claude (RF-01b)
@@ -18,8 +18,7 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-from finsup import demo_data, extraction, glossary
-from finsup.ai_client import DEFAULT_MODEL
+from finsup import extraction, glossary
 from finsup.budget import (
     BENCHMARK_503020,
     CATEGORIES,
@@ -31,16 +30,21 @@ from finsup.budget import (
     eur,
     to_monthly,
     months_to_goal,
-    possible_duplicates,
+    remove_duplicates,
     top_categories,
 )
 
-st.set_page_config(page_title="FinSup — Capire il proprio budget", page_icon="💶", layout="wide")
+# Nome e promessa come nella copertina della presentazione.
+APP_NAME = "BudgetFacile"
+TAGLINE = "Dall'ammasso di documenti a un budget chiaro in pochi minuti."
+
+st.set_page_config(page_title=APP_NAME, page_icon="💶", layout="wide")
 
 DISCLAIMER = (
-    "**Strumento educativo, non consulenza finanziaria.** FinSup ti aiuta a capire com'è fatto "
+    f"**Strumento educativo, non consulenza finanziaria.** {APP_NAME} ti aiuta a capire com'è fatto "
     "il tuo budget: non dice cosa fare con i tuoi soldi, le decisioni restano tue."
 )
+DUPLICATE_FILL = "#FFF4C2"  # giallo: voci doppie tolte in automatico
 
 # Colori allineati alla presentazione (variabili :root del deck). Palette
 # categoriale: apre con verde (--acc-m) e ambra (--amber) del deck, validata
@@ -59,7 +63,7 @@ SURFACE = "#F4F2ED"         # --bg: separatore tra le fette della ciambella
 IT_AXIS = alt.Axis(labelExpr="replace(format(datum.value, ',.0f'), regexp(',', 'g'), '.')")
 SERIES = ["Il tuo budget", "Riferimento 50/30/20"]
 
-STEPS = {"input": "1 · Inserisci le voci", "conferma": "2 · Conferma i dati", "risultati": "3 · Capisci il budget"}
+STEPS = {"input": "Inserisci le voci", "conferma": "Conferma i dati", "risultati": "Capisci il budget"}
 
 INCOME_COLUMNS = ["label", "amount", "periodicity", "source"]
 EXPENSE_COLUMNS = ["label", "amount", "category", "type", "periodicity", "source"]
@@ -73,7 +77,7 @@ INCOME_CONFIG = {
     ),
     "periodicity": st.column_config.SelectboxColumn(
         "Ogni quanto", options=PERIODICITIES, required=True, default="mensile", width="small",
-        help="Quanto spesso ricevi o paghi questo importo. FinSup lo riporta al mese "
+        help="Quanto spesso ricevi o paghi questo importo. L'app lo riporta al mese "
              "(annuale ÷ 12, trimestrale ÷ 3)",
     ),
     "source": st.column_config.TextColumn(
@@ -83,8 +87,8 @@ INCOME_CONFIG = {
 }
 EXPENSE_CONFIG = {
     **INCOME_CONFIG,
-    # larghezze in px: le 6 colonne entrano in circa 800 px, cioe' a 1280 con la sidebar (QA-38)
-    "label": st.column_config.TextColumn("Voce", width=230, required=True),
+    # larghezze in px: tutte le colonne, compresa "Elimina", entrano a 1280 px (QA-38)
+    "label": st.column_config.TextColumn("Voce", width=320, required=True),
     "amount": st.column_config.NumberColumn(
         "Importo (€)", min_value=0.0, step=0.01, format="%.2f €", width=100,
         help=INCOME_CONFIG["amount"]["help"],
@@ -132,6 +136,7 @@ def _init_state() -> None:
     ss.setdefault("doc_terms", [])
     ss.setdefault("extraction_log", [])
     ss.setdefault("glossary", None)
+    ss.setdefault("duplicates", [])  # voci doppie tolte in automatico dopo l'estrazione
     ss.setdefault("v", 0)  # versione delle tabelle: cambia quando i dati arrivano da fuori
 
 
@@ -165,21 +170,61 @@ def _table_height(rows: int) -> int:
     return 35 * (rows + 2) + 3
 
 
-def _edit_tables(prefix: str) -> tuple[list[dict], list[dict]]:
+DELETE_COLUMN = {"remove": st.column_config.CheckboxColumn(
+    "Elimina", default=False, width=70, help="Spunta per togliere la voce dal calcolo",
+)}
+
+
+def _edit_tables(prefix: str, deletable: bool = False) -> tuple[list[dict], list[dict]]:
+    """Tabelle editabili di entrate e uscite; con `deletable` c'e' la colonna "Elimina"."""
     v = st.session_state.v
-    st.markdown("**Entrate**")
-    incomes = st.data_editor(
-        pd.DataFrame(st.session_state.incomes, columns=INCOME_COLUMNS),
-        key=f"{prefix}_inc_{v}", num_rows="dynamic", hide_index=True, width="stretch",
-        height=_table_height(len(st.session_state.incomes)), column_config=INCOME_CONFIG,
-    )
-    st.markdown("**Uscite**")
-    expenses = st.data_editor(
-        pd.DataFrame(st.session_state.expenses, columns=EXPENSE_COLUMNS),
-        key=f"{prefix}_exp_{v}", num_rows="dynamic", hide_index=True, width="stretch",
-        height=_table_height(len(st.session_state.expenses)), column_config=EXPENSE_CONFIG,
-    )
-    return _records(incomes), _records(expenses)
+    tables = []
+    for title, items, columns, config, key in (
+        ("Entrate", st.session_state.incomes, INCOME_COLUMNS, INCOME_CONFIG, "inc"),
+        ("Uscite", st.session_state.expenses, EXPENSE_COLUMNS, EXPENSE_CONFIG, "exp"),
+    ):
+        st.markdown(f"**{title}**")
+        df = pd.DataFrame(items, columns=columns)
+        if deletable:
+            df.insert(0, "remove", False)
+            config = {**DELETE_COLUMN, **config}
+        edited = st.data_editor(
+            df, key=f"{prefix}_{key}_{v}", num_rows="dynamic", hide_index=True, width="stretch",
+            height=_table_height(len(items)), column_config=config,
+        )
+        tables.append([{k: val for k, val in r.items() if k != "remove"}
+                       for r in _records(edited) if not r.get("remove")])
+    return tables[0], tables[1]
+
+
+def _add_item_form(incomes: list[dict], expenses: list[dict], *, step: str, expanded: bool = False) -> None:
+    """Aggiunta guidata di una voce personalizzata, oltre alla riga "+" delle tabelle.
+
+    Con questo e le tabelle l'intero budget si inserisce a mano: l'app funziona
+    anche senza leggere documenti, quindi senza AI.
+    """
+    with st.expander("➕ Aggiungi una voce", expanded=expanded):
+        kind = st.radio("Che cosa vuoi aggiungere?", ["Uscita", "Entrata"], horizontal=True, key="add_kind")
+        label_col, amount_col, period_col = st.columns([3, 1, 1])
+        label = label_col.text_input("Descrizione", placeholder="Es. regalo di compleanno, ripetizioni", key="add_label")
+        amount = amount_col.number_input("Importo (€)", min_value=0.0, step=1.0, key="add_amount")
+        periodicity = period_col.selectbox("Ogni quanto", PERIODICITIES, key="add_period")
+        if kind == "Uscita":
+            cat_col, type_col = st.columns(2)
+            category = cat_col.selectbox("Categoria", CATEGORIES, index=len(CATEGORIES) - 1, key="add_cat")
+            expense_type = type_col.selectbox("Tipo", EXPENSE_TYPES, index=EXPENSE_TYPES.index(DEFAULT_TYPE[category]),
+                                              key="add_type")
+        if st.button("Aggiungi", disabled=not label or amount <= 0):
+            item = {"label": label, "amount": amount, "periodicity": periodicity, "source": None}
+            # le modifiche gia' fatte nelle tabelle restano: si parte dai valori correnti
+            st.session_state.incomes, st.session_state.expenses = incomes, expenses
+            if kind == "Uscita":
+                st.session_state.expenses = expenses + [{**item, "category": category, "type": expense_type}]
+            else:
+                st.session_state.incomes = incomes + [item]
+            for key in ("add_label", "add_amount"):
+                st.session_state.pop(key, None)
+            _go(step)
 
 
 def _run_extraction(files) -> tuple[list[dict], list[dict]]:
@@ -187,39 +232,80 @@ def _run_extraction(files) -> tuple[list[dict], list[dict]]:
     with ThreadPoolExecutor(max_workers=len(paths)) as pool:
         results = list(pool.map(extraction.extract_budget_items, paths))
 
-    # Messaggi in parole semplici per l'utente; costi ed errori tecnici a parte (QA-38).
-    log, tech, incomes, expenses = [], [], [], []
+    # Messaggi in parole semplici per l'utente: niente costi o errori tecnici (QA-38).
+    log, incomes, expenses = [], [], []
     for path, result in zip(paths, results):
         if result["error"]:
             log.append(("warning", f"**{path.name}**: non sono riuscito a leggere questo documento. "
-                                   "Puoi inserire le voci a mano qui sotto o usare i dati di esempio."))
-            tech.append(f"{path.name}: {result['error']}")
+                                   "Puoi inserire le voci a mano qui sotto."))
             continue
         incomes += result["incomes"]
         expenses += result["expenses"]
         st.session_state.doc_terms += result["terms"]
         log.append(("success", f"**{path.name}**: trovate {len(result['incomes'])} entrate e "
                                f"{len(result['expenses'])} uscite."))
-        origin = "già letto in precedenza, risultato riutilizzato" if result["cached"] else "letto da Claude"
-        tech.append(f"{path.name}: {origin} · costo ${result['cost_usd']:.3f}")
         if result["flagged"]:
             log.append(("warning", f"**{path.name}**: {result['flagged']} voci hanno una descrizione da "
                                    f"verificare («{extraction.FLAGGED_LABEL}»): l'importo è quello del documento."))
     st.session_state.extraction_log = log
-    st.session_state.extraction_tech = tech
     return incomes, expenses
 
 
-def _sidebar() -> None:
-    with st.sidebar:
-        st.title("💶 FinSup")
-        st.caption("Capire il proprio budget, in parole semplici")
-        for key, label in STEPS.items():
-            st.markdown(f"**▶ {label}**" if key == st.session_state.step else label)
-        st.divider()
-        if st.button("Ricomincia da capo", width="stretch"):
-            st.session_state.clear()
-            st.rerun()
+def _duplicates_table() -> None:
+    """Voci doppie tolte in automatico, evidenziate in giallo: niente sparisce in silenzio."""
+    dropped = st.session_state.duplicates
+    if not dropped:
+        return
+    st.markdown("**Voci doppie, contate una volta sola**")
+    st.caption(
+        "Queste voci comparivano in due documenti (es. lo stipendio nella busta paga e il suo accredito "
+        "sul conto): le ho tolte dal calcolo per non contarle due volte."
+    )
+    df = pd.DataFrame([{
+        "Voce tolta": d.get("label"), "Importo": eur(float(d.get("amount") or 0)),
+        "Da dove arriva": d.get("source"), "Già contata come": d.get("duplicate_of"),
+    } for d in dropped])
+    styled = df.style.set_properties(**{"background-color": DUPLICATE_FILL, "color": "#1A1A28"})
+    st.dataframe(styled, hide_index=True, width="stretch")
+
+
+# Titolo e passi con lo stile della copertina e della slide "Come funziona"
+# del deck: "Budget" nel colore del testo e "Facile" nel verde --acc, cerchi
+# numerati come .step-n.
+HEADER_CSS = """<style>
+[data-testid='stMetricValue'] { font-size: 1.85rem; }
+.bf-title { font-size: 2.7rem !important; font-weight: 800; letter-spacing: -1.5px; line-height: 1.15;
+            color: #1A1A28; margin: 0; }
+.bf-title span { color: #006B54; }
+.bf-lead { color: #6A6A7E; font-size: 1.05rem !important; margin: .2rem 0 .6rem 0; }
+.bf-flow { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin: .3rem 0 .2rem 0; }
+.bf-step { display: flex; align-items: center; gap: .5rem; color: #6A6A7E; font-weight: 600; }
+.bf-step .n { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #B0AFBA; display: flex;
+              align-items: center; justify-content: center; font-weight: 800; }
+.bf-step.done .n { background: #E5F2EE; border-color: #006B54; color: #006B54; }
+.bf-step.active { color: #1A1A28; }
+.bf-step.active .n { background: #006B54; border-color: #006B54; color: #FFFFFF; }
+.bf-sep { color: #B0AFBA; font-weight: 700; }
+</style>"""
+
+
+def _header() -> None:
+    """Titolo come nel deck e flusso dei 3 passi in alto (al posto della sidebar)."""
+    st.markdown(HEADER_CSS, unsafe_allow_html=True)
+    st.markdown(f"<div class='bf-title'>Budget<span>Facile</span></div><div class='bf-lead'>{TAGLINE}</div>",
+                unsafe_allow_html=True)
+    keys = list(STEPS)
+    current = keys.index(st.session_state.step)
+    steps = []
+    for i, key in enumerate(keys):
+        state = "active" if i == current else "done" if i < current else ""
+        steps.append(f"<div class='bf-step {state}'><div class='n'>{i + 1}</div>{STEPS[key]}</div>")
+    flow_col, restart_col = st.columns([5, 1], vertical_alignment="center")
+    flow_col.markdown(f"<div class='bf-flow'>{'<span class=bf-sep>→</span>'.join(steps)}</div>",
+                      unsafe_allow_html=True)
+    if restart_col.button("Ricomincia da capo", width="stretch"):
+        st.session_state.clear()
+        st.rerun()
 
 
 # -------------------------------------------------------------- passo 1
@@ -230,42 +316,40 @@ def step_input() -> None:
     with box:
         st.subheader("📄 Hai dei documenti? Caricali così come sono")
         st.write(
-            "Busta paga, estratto conto, bolletta o il tuo foglio spese (PDF o Excel). Claude li legge "
-            "e precompila le tabelle qui sotto: prima del calcolo potrai controllare e correggere ogni voce."
+            "Busta paga, estratto conto, bolletta o il tuo foglio spese (PDF o Excel). Li leggo io e "
+            "precompilo le tabelle qui sotto: prima del calcolo potrai controllare e correggere ogni voce."
         )
         files = st.file_uploader(
             "Documenti", type=["pdf", "xlsx", "xls"], accept_multiple_files=True,
             key=f"upload_{st.session_state.v}", label_visibility="collapsed",
         )
-        read_col, demo_col = st.columns(2)
-        read_docs = read_col.button("Leggi i documenti con Claude", type="primary", disabled=not files, width="stretch")
-        use_demo = demo_col.button("Usa i dati di esempio (persona fittizia)", width="stretch")
+        read_docs = st.button("Carica i documenti", type="primary", disabled=not files)
         for level, message in st.session_state.extraction_log:
             getattr(st, level)(message)
-        if st.session_state.get("extraction_tech"):
-            with st.expander("Dettagli tecnici (uso dell'AI)"):
-                for line in st.session_state.extraction_tech:
-                    st.caption(line)
 
-    st.subheader("✍️ Inserisci o completa le voci")
+    st.subheader("✍️ Oppure inserisci tutto a mano")
     st.caption(
-        "Scrivi gli importi come li trovi nei documenti. Le voci annuali o trimestrali (es. assicurazione, "
-        "bollo) vengono riportate al mese in automatico. Aggiungi righe con il + in fondo a ogni tabella."
+        "Non servono documenti: puoi scrivere qui ogni entrata e uscita, oppure completare quelle lette. "
+        "Scrivi gli importi come li paghi o li ricevi: le voci annuali o trimestrali (es. assicurazione, "
+        "bollo) vengono riportate al mese in automatico. Per una voce nuova usa il riquadro sotto le "
+        "tabelle o la riga + in fondo a ogni tabella."
     )
     incomes, expenses = _edit_tables("input")
+    _add_item_form(incomes, expenses, step="input")
 
     if read_docs:
-        with box, st.spinner("Claude sta leggendo i documenti: può volerci fino a un minuto…"):
+        with box, st.spinner("Sto leggendo i documenti: può volerci fino a un minuto…"):
             new_incomes, new_expenses = _run_extraction(files)
-        st.session_state.incomes = _merge(incomes, new_incomes)
-        st.session_state.expenses = _merge(expenses, new_expenses)
-        _go("input")
-    if use_demo:
-        st.session_state.incomes = [dict(i, source="esempio") for i in demo_data.INCOMES]
-        st.session_state.expenses = [dict(e, source="esempio") for e in demo_data.EXPENSES]
-        st.session_state.doc_terms = list(demo_data.TERMS)
-        st.session_state.extraction_log = [("info", "Caricati i dati di esempio: gli stessi dei documenti demo "
-                                                    "in app/demo_assets (persona e importi inventati).")]
+        # La stessa voce in due documenti (es. stipendio in busta paga e accredito sul conto) e'
+        # normale: si tiene una copia sola, senza chiedere nulla all'utente, e le copie tolte
+        # restano visibili in giallo nella conferma.
+        st.session_state.incomes, dropped_incomes = remove_duplicates(_merge(incomes, new_incomes))
+        st.session_state.expenses, dropped_expenses = remove_duplicates(_merge(expenses, new_expenses))
+        dropped = dropped_incomes + dropped_expenses
+        st.session_state.duplicates += dropped
+        if dropped:
+            st.session_state.extraction_log.append(("info", f"{len(dropped)} voci comparivano in due documenti: le "
+                                                            "ho contate una volta sola (le trovi in giallo nella conferma)."))
         _go("input")
     if st.button("Vai alla conferma →", type="primary"):
         st.session_state.incomes, st.session_state.expenses = incomes, expenses
@@ -287,23 +371,10 @@ def step_confirm() -> None:
             "documenti originali, la lettura automatica può sbagliare.",
             icon="🔎",
         )
-    duplicates_box = st.container()  # riempito dopo, con i valori modificati in diretta
-    incomes, expenses = _edit_tables("conferma")
-    with duplicates_box:
-        for kind, items in (("entrata", incomes), ("uscita", expenses)):
-            for a, b in possible_duplicates(items):
-                if b.get("is_total"):  # es. addebito della bolletta = somma delle voci della bolletta
-                    other = f"il totale delle voci lette da {b['source']}"
-                    fix = "tieni le voci dettagliate oppure il solo addebito, non entrambi"
-                else:
-                    other = f"«{b['label']}» ({b['source']})"
-                    fix = "cancellane una"
-                st.warning(
-                    f"**Possibile doppione**: «{a['label']}» ({a['source']}) ha lo stesso importo di "
-                    f"{other}: {eur(float(a['amount']))}. Se è la stessa {kind} (es. lo stipendio in busta "
-                    f"paga e il suo accredito sul conto), {fix}: altrimenti viene contata due volte.",
-                    icon="👯",
-                )
+    st.caption("Spunta «Elimina» per togliere una voce dal calcolo; per aggiungerne una usa il riquadro sotto le tabelle.")
+    incomes, expenses = _edit_tables("conferma", deletable=True)
+    _add_item_form(incomes, expenses, step="conferma")
+    _duplicates_table()
     preview = compute_budget(incomes, expenses)
     st.caption(
         f"Anteprima riportata al mese: entrate {eur(preview.total_income)} · uscite {eur(preview.total_expenses)}"
@@ -346,7 +417,7 @@ def step_results() -> None:
 
     # Schede invece di una pagina lunga piu' di 3.000 px (QA-38).
     summary, benchmark, words, goal, details = st.tabs([
-        "📊 Riepilogo", "⚖️ Regola 50/30/20", "📖 Parole tecniche", "🎯 Obiettivo di risparmio",
+        "📊 Riepilogo", "⚖️ Regola 50/30/20", "📖 Glossario", "🎯 Obiettivo di risparmio",
         "🧮 Come è stato calcolato",
     ])
     with summary:
@@ -478,14 +549,14 @@ def _benchmark_section(s) -> None:
 def _benchmark_note() -> None:
     st.caption(
         "È solo un termine di paragone per leggere i tuoi numeri, non un obiettivo da raggiungere: ogni "
-        "situazione personale è diversa. Per il confronto FinSup conta come desideri solo la categoria "
+        "situazione personale è diversa. Per il confronto l'app conta come desideri solo la categoria "
         "svago; tutte le altre (compresa «altro», che di solito raccoglie commissioni e imposte) "
         "sono contate come necessità."
     )
 
 
 def _glossary_section(data: dict) -> None:
-    """RF-04: glossario contestuale, generato da Claude solo su richiesta."""
+    """RF-04: glossario contestuale; per i termini nuovi, Claude solo su richiesta."""
     labels = [r.get("label") or "" for r in data["incomes"] + data["expenses"]]
     terms = glossary.detect_terms(labels, st.session_state.doc_terms)
     if not terms:
@@ -497,8 +568,8 @@ def _glossary_section(data: dict) -> None:
         # dove compare il termine: nelle voci confermate o solo nel testo dei documenti (QA-40)
         where = context[item["term"]]
         where = "nei documenti caricati" if where == "documento caricato" else f"nella voce «{where}»"
-        st.markdown(f"**{item['term']}** — {item['text']}  \n<small>Compare {where}.</small>", unsafe_allow_html=True)
-    st.caption("Definizioni preparate con Claude e riviste a mano dal team: spiegano il significato, non cosa fare.")
+        st.markdown(f"**{item['term']}**: {item['text']}  \n<small>Compare {where}.</small>", unsafe_allow_html=True)
+    st.caption("Definizioni riviste a mano dal team: spiegano il significato, non cosa fare.")
 
     others = glossary.unknown_terms(terms)
     if not others:
@@ -506,8 +577,8 @@ def _glossary_section(data: dict) -> None:
     result = st.session_state.glossary
     if result is None:
         st.write("Altri termini trovati nei documenti: " + ", ".join(f"**{t}**" for t, _ in others))
-        if st.button("Chiedi a Claude di spiegarli in parole semplici", type="primary"):
-            with st.spinner("Claude sta preparando le spiegazioni…"):
+        if st.button("Chiedimi di spiegarli in parole semplici", type="primary"):
+            with st.spinner("Sto preparando le spiegazioni…"):
                 st.session_state.glossary = glossary.explain_with_ai(others)
             st.rerun()
         st.caption(
@@ -517,16 +588,13 @@ def _glossary_section(data: dict) -> None:
         return
 
     if result["error"]:
-        st.caption("Le spiegazioni di Claude non sono disponibili in questo momento.")
+        st.caption("Le spiegazioni non sono disponibili in questo momento.")
     for item in result["items"]:
-        st.markdown(f"**{item['term']}** — {item['text']}")
+        st.markdown(f"**{item['term']}**: {item['text']}")
     if result["blocked"]:
         st.caption(f"Non mostrate perché non rispettavano il vincolo educativo: {', '.join(result['blocked'])}.")
     if result["items"]:
-        st.caption("Spiegazioni generate da Claude e controllate dal filtro anti-consigli prima di essere mostrate.")
-    with st.expander("Dettagli tecnici (uso dell'AI)"):
-        st.caption(f"Modello {DEFAULT_MODEL} · una sola chiamata · costo ${result['cost_usd']:.3f}"
-                   + (f" · errore: {result['error']}" if result["error"] else ""))
+        st.caption("Spiegazioni generate automaticamente e controllate dal filtro anti-consigli prima di essere mostrate.")
 
 
 def _goal_section(s) -> None:
@@ -573,14 +641,12 @@ def _calculation_details(data: dict, s) -> None:
         for r in data["expenses"]
     ]
     st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch", height=_table_height(len(rows)))
+    _duplicates_table()
 
 
 # --------------------------------------------------------------------- main
 
 _init_state()
-_sidebar()
-# Con Segoe UI (font del deck) i valori a 4 colonne venivano troncati a 1280 px.
-st.markdown("<style>[data-testid='stMetricValue'] { font-size: 1.85rem; }</style>", unsafe_allow_html=True)
-st.title("FinSup — capire il proprio budget")
+_header()
 st.info(DISCLAIMER, icon="ℹ️")
 {"input": step_input, "conferma": step_confirm, "risultati": step_results}[st.session_state.step]()

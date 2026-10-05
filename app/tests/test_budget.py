@@ -6,6 +6,7 @@ from finsup.budget import (
     compute_budget,
     months_to_goal,
     possible_duplicates,
+    remove_duplicates,
     to_monthly,
     top_categories,
 )
@@ -50,11 +51,22 @@ def test_unknown_category_falls_back_to_altro():
     assert s.by_type["variabile"] == 10
 
 
-def test_demo_data_gives_small_positive_savings():
-    s = compute_budget(demo_data.INCOMES, demo_data.EXPENSES)
-    assert s.total_income == pytest.approx(1720)
-    assert s.total_expenses == pytest.approx(1682.54)
-    assert s.savings == pytest.approx(37.46)
+@pytest.mark.parametrize("name", list(demo_data.SCENARIOS))
+def test_demo_scenarios_match_expected_values(name):
+    # QA-21: i numeri attesi dei due scenari (documenti in app/demo_assets)
+    scenario = demo_data.SCENARIOS[name]
+    s = compute_budget(scenario["incomes"], scenario["expenses"])
+    expected = scenario["expected"]
+    assert s.total_income == pytest.approx(expected["income"])
+    assert s.total_expenses == pytest.approx(expected["expenses"])
+    assert s.savings == pytest.approx(expected["savings"])
+
+
+def test_demo_scenarios_are_low_and_high_savings():
+    low = compute_budget(demo_data.MARCO["incomes"], demo_data.MARCO["expenses"])
+    high = compute_budget(demo_data.ALESSANDRA["incomes"], demo_data.ALESSANDRA["expenses"])
+    assert low.savings < 0  # Marco: ramo RF-06 visibile senza ritocchi
+    assert high.savings_rate > 0.30
 
 
 def test_negative_savings_and_top_categories():
@@ -102,12 +114,10 @@ def test_benchmark_counts_bank_fees_in_altro_as_needs():
     assert rows["Desideri"]["actual"] == pytest.approx(50)
 
 
-def test_demo_without_side_income_shows_negative_savings():
-    # QA-16: in demo basta cancellare la riga delle collaborazioni nella
-    # schermata di conferma (RF-09) per mostrare il ramo RF-06.
-    incomes = [i for i in demo_data.INCOMES if i["periodicity"] == "mensile"]
-    s = compute_budget(incomes, demo_data.EXPENSES)
-    assert s.savings == pytest.approx(-62.54)
+def test_low_savings_scenario_shows_negative_savings():
+    # QA-16: lo scenario di Marco mostra il ramo RF-06 senza modificare nulla
+    s = compute_budget(demo_data.MARCO["incomes"], demo_data.MARCO["expenses"])
+    assert s.savings == pytest.approx(-81.56)
     assert top_categories(s)[0][0] == "Abitazione"
 
 
@@ -129,6 +139,44 @@ def test_bank_debit_matching_bill_total_is_a_duplicate():
     assert len(pairs) == 1
     first, total = pairs[0]
     assert first is rid and total["is_total"] and total["source"] == "bolletta.pdf"
+
+
+def test_remove_duplicates_keeps_payslip_and_drops_bank_credit():
+    salary = {"label": "Netto in busta", "amount": 2576.34, "source": "busta_paga.pdf"}
+    credit = {"label": "Accredito stipendio", "amount": 2576.34, "source": "estratto.xlsx"}
+    rent = {"label": "Canone locazione", "amount": 720, "source": "estratto.xlsx"}
+    kept, dropped = remove_duplicates([credit, rent, salary])
+    assert kept == [rent, salary]
+    assert dropped[0]["label"] == "Accredito stipendio"
+    assert "Netto in busta" in dropped[0]["duplicate_of"]
+
+
+def test_remove_duplicates_keeps_bill_details_and_drops_bank_debit():
+    luce = {"label": "Energia elettrica", "amount": 58.05, "source": "bolletta.pdf"}
+    gas = {"label": "Gas naturale", "amount": 39.77, "source": "bolletta.pdf"}
+    rid = {"label": "Addebito RID bolletta", "amount": 97.82, "source": "estratto.pdf"}
+    affitto = {"label": "Affitto", "amount": 620, "source": "estratto.pdf"}
+    kept, dropped = remove_duplicates([luce, gas, rid, affitto])
+    assert kept == [luce, gas, affitto]
+    assert [d["label"] for d in dropped] == ["Addebito RID bolletta"]
+    assert compute_budget([], kept).total_expenses == pytest.approx(717.82)
+
+
+def test_bill_items_are_not_matched_one_by_one_once_the_bill_total_is_matched():
+    # QA-45: bollo 2,00 in bolletta e commissione 2,00 sul conto non sono la stessa spesa
+    bollo = {"label": "Imposta di bollo", "amount": 2.00, "source": "bolletta.pdf"}
+    luce = {"label": "Energia elettrica", "amount": 58.05, "source": "bolletta.pdf"}
+    rid = {"label": "Addebito RID bolletta", "amount": 60.05, "source": "estratto.pdf"}
+    commissione = {"label": "Commissione di gestione", "amount": 2.00, "source": "estratto.pdf"}
+    kept, dropped = remove_duplicates([bollo, luce, rid, commissione])
+    assert [d["label"] for d in dropped] == ["Addebito RID bolletta"]
+    assert commissione in kept and bollo in kept
+
+
+def test_remove_duplicates_leaves_manual_rows_alone():
+    manual = [{"label": "Stipendio", "amount": 1500, "source": None},
+              {"label": "Altro stipendio", "amount": 1500, "source": None}]
+    assert remove_duplicates(manual) == (manual, [])
 
 
 def test_same_amount_in_same_file_is_not_a_duplicate():

@@ -139,18 +139,16 @@ def possible_duplicates(items: list[dict]) -> list[tuple[dict, dict]]:
     - l'addebito di una bolletta nell'estratto conto e la bolletta stessa,
       che l'estrazione divide per servizio: si confronta con il totale delle
       voci di quel file (la seconda voce della coppia ha `is_total=True`).
-    Non unisce nulla da solo: segnala, e l'utente decide in conferma.
+    Se un file e' gia' abbinato come totale a una voce di un altro file, le
+    sue singole voci non vengono confrontate con quel file: una bolletta
+    pagata dal conto non e' anche "bollo 2,00 = commissione 2,00" (QA-45).
     """
-    pairs = []
-    for i, a in enumerate(items):
-        for b in items[i + 1:]:
-            if _same_amount(a, b) and _different_files(a, b):
-                pairs.append((a, b))
-
     by_source: dict[str, list[dict]] = {}
     for item in items:
         if item.get("source"):
             by_source.setdefault(item["source"], []).append(item)
+
+    total_pairs, linked = [], set()  # linked: coppie di file gia' spiegate da un totale
     for a in items:
         for source, group in by_source.items():
             if len(group) < 2 or source == a.get("source") or not a.get("source"):
@@ -158,8 +156,50 @@ def possible_duplicates(items: list[dict]) -> list[tuple[dict, dict]]:
             total = {"label": f"totale delle voci di {source}", "source": source, "is_total": True,
                      "amount": round(sum(_number(g.get("amount")) for g in group), 2)}
             if _same_amount(a, total):
-                pairs.append((a, total))
-    return pairs
+                total_pairs.append((a, total))
+                linked.add(frozenset((source, a["source"])))
+
+    pairs = []
+    for i, a in enumerate(items):
+        for b in items[i + 1:]:
+            if (_same_amount(a, b) and _different_files(a, b)
+                    and frozenset((a["source"], b["source"])) not in linked):
+                pairs.append((a, b))
+    return pairs + total_pairs
+
+
+def remove_duplicates(items: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Toglie le voci doppie tra file diversi: ogni importo conta una volta sola.
+
+    Avere la stessa voce in due documenti e' normale (busta paga + estratto
+    conto), quindi non si chiede all'utente di cancellarla. Quale copia resta:
+    - addebito uguale al totale di un altro file: restano le voci dettagliate
+      (es. la bolletta per servizio), si toglie l'addebito;
+    - stesso importo in due file: si toglie la copia del file con piu' voci
+      (l'estratto conto, che riporta solo il movimento) e resta quella del
+      documento d'origine (es. la busta paga).
+    Ritorna (voci tenute, voci tolte); ogni voce tolta ha `duplicate_of` con
+    la voce che la sostituisce, cosi' la UI la mostra e niente sparisce in silenzio.
+    """
+    per_source: dict[str, int] = {}
+    for item in items:
+        if item.get("source"):
+            per_source[item["source"]] = per_source.get(item["source"], 0) + 1
+
+    removed: dict[int, str] = {}
+    for a, b in possible_duplicates(items):
+        if b.get("is_total"):
+            victim, kept_label = a, f"{b['label']} ({eur(b['amount'])})"
+        else:
+            victim, keeper = (a, b) if per_source[a["source"]] > per_source[b["source"]] else (b, a)
+            if id(keeper) in removed:
+                continue
+            kept_label = f"«{keeper['label']}» ({keeper['source']})"
+        removed.setdefault(id(victim), kept_label)
+
+    kept = [i for i in items if id(i) not in removed]
+    dropped = [dict(i, duplicate_of=removed[id(i)]) for i in items if id(i) in removed]
+    return kept, dropped
 
 
 def _same_amount(a: dict, b: dict) -> bool:
