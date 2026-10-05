@@ -45,6 +45,17 @@ def test_compute_budget_matches_spec_formula():
     assert s.type_share_of_income("fissa") == pytest.approx(630 / 1600)
 
 
+def test_one_off_expense_counts_in_the_month_and_has_its_own_share():
+    s = compute_budget(
+        [{"amount": 2000, "periodicity": "mensile"}],
+        [{"amount": 300, "category": "Trasporti", "type": "una tantum", "periodicity": "mensile"},
+         {"amount": 700, "category": "Abitazione", "type": "fissa", "periodicity": "mensile"}],
+    )
+    assert s.total_expenses == pytest.approx(1000)
+    assert s.by_type["una tantum"] == pytest.approx(300)
+    assert s.type_share_of_income("una tantum") == pytest.approx(0.15)
+
+
 def test_unknown_category_falls_back_to_altro():
     s = compute_budget([], [{"amount": 10, "category": "Boh", "periodicity": "mensile"}])
     assert s.by_category["Altro"] == 10

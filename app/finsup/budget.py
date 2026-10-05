@@ -25,7 +25,9 @@ CATEGORIES = [
     "Svago/discrezionale",
     "Altro",
 ]
-EXPENSE_TYPES = ["fissa", "semi-fissa", "variabile"]
+# "una tantum": spesa che capita una volta sola (es. una riparazione). Conta nel
+# mese in cui si paga, come le altre; il tipo serve a leggere la composizione.
+EXPENSE_TYPES = ["fissa", "semi-fissa", "variabile", "una tantum"]
 DEFAULT_TYPE = {
     "Abitazione": "fissa",
     "Debiti/finanziamenti": "fissa",

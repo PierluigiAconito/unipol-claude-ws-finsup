@@ -104,9 +104,10 @@ EXPENSE_CONFIG = {
         "Da dove arriva", disabled=True, width=90, help=INCOME_CONFIG["source"]["help"],
     ),
     "type": st.column_config.SelectboxColumn(
-        "Tipo", options=EXPENSE_TYPES, required=True, default="variabile", width=85,
+        "Tipo", options=EXPENSE_TYPES, required=True, default="variabile", width=95,
         help="Fissa: stessa cifra ogni volta (es. affitto). Semi-fissa: cambia poco (es. carburante). "
-             "Variabile: cambia molto (es. spesa, svago)",
+             "Variabile: cambia molto (es. spesa, svago). Una tantum: capita una volta sola "
+             "(es. una riparazione, un regalo)",
     ),
 }
 
@@ -410,6 +411,7 @@ def step_results() -> None:
         "Sul totale delle entrate: spese fisse " + _pct(s.type_share_of_income("fissa"))
         + " · semi-fisse " + _pct(s.type_share_of_income("semi-fissa"))
         + " · variabili " + _pct(s.type_share_of_income("variabile"))
+        + (" · una tantum " + _pct(s.type_share_of_income("una tantum")) if s.by_type.get("una tantum") else "")
     )
 
     if s.savings <= 0:
