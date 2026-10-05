@@ -6,7 +6,38 @@ Findings della sessione QA sullo stato della working copy, incluso il codice non
 
 **Severità**: **Bloccante** = viola una regola di consegna o rompe la demo dal vivo · **Alta** = un valutatore lo nota e costa punti · **Media** = indebolisce un criterio · **Bassa** = rifinitura.
 
-**Giri**: giro 1 (QA-01..16), revisione manuale. Giro 2 (QA-17..43), QA multiprofilo con [`/qa-review`](../commands/qa-review.md) più l'estrazione reale dei documenti demo forniti dal team. Entrambi del 2026-10-05.
+**Giri**: giro 1 (QA-01..16), revisione manuale. Giro 2 (QA-17..43), QA multiprofilo con [`/qa-review`](../commands/qa-review.md) più l'estrazione reale dei documenti demo forniti dal team. Giro 3 (QA-44..53), QA finale prima della consegna, sul repo committato. Tutti del 2026-10-05.
+
+---
+
+## Giro 3: QA finale prima della consegna
+
+Eseguito sul repo committato (HEAD `c9fab2d`, poi i fix fino al push finale), con i 5 profili in parallelo e verifiche deterministiche fatte dalla sessione QA.
+
+| Profilo / verifica | Modello | Token | Esito in una riga |
+|---|---|---|---|
+| `qa-faculty` | Sonnet | ~77k | Soluzione e pattern in crescita (pattern 3 → 4); la presentazione resta il punto debole (2/5) |
+| `qa-check-agent` | Sonnet | ~87k | Root conforme, **nessun link rotto**, RF-01..09 tutti implementati e testati; criteri: tecnica alto, gli altri medio per deck e firme mancanti |
+| `qa-graphic-designer` | Opus | ~166k | App molto migliorata, 9 difetti da demo (GFX-29..37); deck fuori brand e tagliato |
+| `qa-utente-target` | Sonnet (via general-purpose: profilo non registrato nella sessione) | ~90k | Comprensione migliorata su 5 domande su 5, **nessun numero inventato**; 3 testi da chiarire |
+| `finsup-copy-reviewer` | Haiku | n.d. | Interrotto da un errore API, ma ha consegnato i findings: "consiglia ≥ 20%" e "oneri di sistema = rete" nel deck (QA-27) |
+| Clone pulito + `pip install -r app/requirements.txt` + `pytest app` | n.a. | n.a. | Tutti verdi |
+| Estrazione reale end-to-end dei due scenari, dalla cache | Haiku | $0.09 (2 documenti riletti), poi $0 | Ha trovato la regressione QA-46; dopo il fix Marco −81,56 € e Alessandra 1.132,24 €, identici agli attesi |
+
+**Scorecard faculty** (prima del rifacimento del deck): problema 4 · valore 3 · Tema 02 3 · tecnica 4 · uso AI 3 · verifica umana 3 · pattern 4 · presentazione 2. Il deck è stato poi rifatto (QA-17, 18, 26..30, 37), quindi la colonna presentazione va rivalutata.
+
+**Chiuso nel giro**, dalle due sessioni coordinate per messaggio:
+- **sviluppo**: QA-44, 45, 46, 47, 49, 50, 51;
+- **sessione QA**: QA-03 (verificato), 07, 15, 25, 43, 48 e tutta la presentazione.
+
+**Restano**:
+- firme umane in `verifica-umana.md` (QA-09, 4 righe): può metterle solo una persona;
+- QA-06 (hook visto bloccare dal vivo);
+- QA-14 (numero del team) e nomi del team nel deck (QA-41);
+- QA-36 (CF e date 2025 nei documenti demo);
+- QA-52 (palette dell'app rispetto al deck), che è una decisione dell'utente.
+
+**Nota sul brand**: la regola di consegna dice solo "brand guidelines Accenture". Palette, font e simbolo `>` vengono dalla skill [`accenture-html-deck`](../skills/accenture-html-deck/SKILL.md), scritta dal team in base al brand pubblico di Accenture: la faculty non ha fornito guidelines. Se arrivano quelle ufficiali, prevalgono.
 
 ---
 
@@ -73,43 +104,51 @@ Va scelta **una** storia, e deck, dati di esempio (fallback), deliverable e copi
 
 | ID | Sev. | Area | Finding | Fonti | Owner suggerito | Stato |
 |---|---|---|---|---|---|---|
-| QA-01 | Bloccante | Consegna | `presentation/` non esiste nel repo (il deck è solo in Downloads) | QA · FAC · CHK | collega | in parte (sessione QA): `presentation/index.html` copiato da `Downloads/presentation.html` (versione delle 14:17, senza modifiche). La collega ora lavora lì; restano aperti QA-17/18/25/26/27/28/29/30 |
-| QA-02 | Bloccante | Consegna | Nulla pushato dopo la ristrutturazione: `origin/main` = scheletro con hook PostToolUse | QA · CHK-07 | team | **pianificato**: commit e push unico a fine lavori (decisione del team). Prima del push: README (QA-03); dopo il push: `/qa-review` su `origin/main` |
-| QA-03 | Bloccante | Consegna | README di root obsoleto; i suoi link a `docs/` si rompono al push | QA · CHK-09 | team | riscritto (sviluppo, 5228100): da verificare nel giro QA finale |
-| QA-17 | Bloccante | Presentazione | Fuori brand Accenture: verde/beige, Segoe UI, nessun `>` | GFX-01/02/03 · FAC-04 | collega | aperto |
-| QA-18 | Bloccante | Presentazione | Nessuna slide su struttura agentica, uso AI/token e verifica umana | FAC-03 · CHK-02 · GFX-06 | collega | aperto |
+| QA-01 | Bloccante | Consegna | `presentation/` non esiste nel repo (il deck è solo in Downloads) | QA · FAC · CHK | collega | chiuso (sessione QA): deck in `presentation/index.html`, rifatto nel giro 3 |
+| QA-02 | Bloccante | Consegna | Nulla pushato dopo la ristrutturazione: `origin/main` = scheletro con hook PostToolUse | QA · CHK-07 | team | chiuso: push intermedio `c9fab2d` e push finale a fine giro 3 (sessione QA, su indicazione dell'utente) |
+| QA-03 | Bloccante | Consegna | README di root obsoleto; i suoi link a `docs/` si rompono al push | QA · CHK-09 | team | chiuso (sviluppo, 5228100); verificato da CHK al giro 3: nessun link rotto in README, agents/README, CLAUDE.md, workflows e docs |
+| QA-17 | Bloccante | Presentazione | Fuori brand Accenture: verde/beige, Segoe UI, nessun `>` | GFX-01/02/03 · FAC-04 | collega | chiuso (sessione QA, giro 3): nero, bianco e viola `#A100FF` (`#BE82FF` per il testo piccolo), Graphik con ripiego Arial, simbolo `>`, secondo la skill `accenture-html-deck` (vedi la nota sul brand in testa) |
+| QA-18 | Bloccante | Presentazione | Nessuna slide su struttura agentica, uso AI/token e verifica umana | FAC-03 · CHK-02 · GFX-06 | collega | chiuso (sessione QA, giro 3): 3 slide sul modello agentico (app a runtime; componenti in `agents/`; processo con sessioni parallele, SDD e QA) più 1 su uso dell'AI e verifica umana |
 | QA-19 | Bloccante | Presentazione | Slide demo con segnaposto visibile e URL `localhost:3000` (l'app è su 8501) | GFX-05 · FAC-05 · CHK-03 | collega | chiuso (collega): `APP_URL` e etichetta su `localhost:8501`, segnaposto sostituito; verificato da QA |
 | QA-20 | Bloccante | Demo | L'estratto conto `.xlsx` della persona 2 non si apre nell'app | QA (estrazione reale) | team | lato app chiuso (sviluppo): lettura fogli con `calamine`, che ignora gli stili; provato sul file della persona 2 (43 righe lette). **Verificato da QA** sui documenti finali: entrambi gli xlsx letti ed estratti correttamente |
 | QA-06 | Alta | Pattern | Hook PreToolUse mai visto bloccare in una sessione reale | QA · FAC | team | aperto |
-| QA-07 | Alta | Token | I documenti sui token non corrispondono al codice dell'estrazione | QA · FAC · CHK | sessione QA | aperto (dati misurati disponibili, vedi dettaglio) |
-| QA-21 | Alta | Demo | Tre scenari demo diversi tra deck, app e documenti: serve una decisione | GFX-10 · FAC · QA | team | **deciso (team)**: 2 scenari, **Marco = basso risparmio** (busta paga + bolletta + estratto conto da creare, QA-22) e **Alessandra = alto risparmio** (busta paga + estratto conto). Laura esce dalla demo. **fatto (sessione QA, su incarico dell'utente)**: 5 documenti finali in `app/demo_assets/`, asset e generatore di Laura rimossi, `demo_data.SCENARIOS` con valori attesi e test, `deliverable-tema02.md` e copione aggiornati, prewarm eseguito. Punto 4 superato: il pulsante dei dati di esempio è stato tolto dall'app (decisione dell'utente) |
+| QA-07 | Alta | Token | I documenti sui token non corrispondono al codice dell'estrazione | QA · FAC · CHK | sessione QA | chiuso (sessione QA, 4d57e55): `uso-token.md` e `uso-ai.md` riportano tool minimi, tetti 0.05/0.30, cache e costi misurati |
+| QA-21 | Alta | Demo | Tre scenari demo diversi tra deck, app e documenti: serve una decisione | GFX-10 · FAC · QA | team | **deciso (team)**: 2 scenari, **Marco = basso risparmio** (busta paga + bolletta + estratto conto da creare, QA-22) e **Alessandra = alto risparmio** (busta paga + estratto conto). Laura esce dalla demo. **fatto (sessione QA, su incarico dell'utente)**: 5 documenti finali in `app/demo_assets/`, asset e generatore di Laura rimossi, `demo_data.SCENARIOS` con valori attesi e test, `deliverable-tema02.md` e copione aggiornati, prewarm eseguito. Punto 4 superato: il pulsante dei dati di esempio è stato tolto dall'app (decisione dell'utente) **Punto 6 chiuso** (giro 3): il Before/After del deck usa Marco |
 | QA-22 | Alta | Demo | Persona 1 "basso risparmio" esce al **90,7%** di risparmio | QA (estrazione reale) | team / sviluppo | chiuso (team): estratto conto di Marco fornito; verificato da QA: risparmio −81,56 € (−5,8%), ramo RF-06 visibile |
 | QA-23 | Alta | Demo / app | Persona 2: stipendio contato due volte, entrate 5.872,68 invece di 3.296,34 | QA (estrazione reale) | team + sviluppo | lato app chiuso (sviluppo): avviso "possibile doppione" in conferma RF-09 (stesso importo da file diversi), calcolato sui valori modificati in diretta; `possible_duplicates` + test. **Verificato da QA** sui documenti finali: segnalati lo stipendio di entrambi e la bolletta di Marco; vedi però il falso positivo QA-45 |
 | QA-24 | Alta | Demo | Estrazione da 41 a 97 s per documento: troppo per un pitch di 5 minuti | QA (estrazione reale) | team + sviluppo | lato app chiuso (sviluppo): cache su disco per hash di file + prompt + schema, più `app/scripts/prewarm_extraction.py` da lanciare prima del pitch; test sulla cache. **Verificato da QA**: prewarm sui 5 documenti finali, 4 già in cache e 1 letto ($0.025) |
-| QA-25 | Alta | Coerenza | Nome del prodotto: "BudgetFacile" nel deck, "FinSup" in app e repo | FAC-02 · GFX-11 · CHK-01 | team | aperto |
-| QA-26 | Alta | Tema 02 | Risk & Clarity Note solo in appendice, fuori dai 5 minuti | FAC-01 · GFX-06 | collega | aperto |
-| QA-27 | Alta | Tema 02 | Testi del deck: "50/30/20 consiglia ≥ 20%", "oneri di sistema = rete", "qualsiasi formato" | GFX-12 · QA | collega | aperto |
-| QA-28 | Alta | Presentazione | Before/After: i box ad altezza fissa tagliano totale bolletta e glossario | GFX-07 | collega | aperto |
-| QA-29 | Alta | Presentazione | Testo troppo piccolo per il proiettore (12-13px) e deck che non scala a 1920 | GFX-08/09 | collega | aperto |
-| QA-30 | Alta | Presentazione | Icone da CDN: offline spariscono | GFX-04 · FAC-04 · CHK-04 | collega | aperto |
+| QA-25 | Alta | Coerenza | Nome del prodotto: "BudgetFacile" nel deck, "FinSup" in app e repo | FAC-02 · GFX-11 · CHK-01 | team | chiuso (sviluppo + sessione QA): BudgetFacile in app, README e deck; CLAUDE.md e agents/README dichiarano che FinSup è il nome interno del progetto e del package |
+| QA-26 | Alta | Tema 02 | Risk & Clarity Note solo in appendice, fuori dai 5 minuti | FAC-01 · GFX-06 | collega | chiuso (sessione QA, giro 3): Risk & Clarity Note nel flusso principale (slide 10), con il link al repo |
+| QA-27 | Alta | Tema 02 | Testi del deck: "50/30/20 consiglia ≥ 20%", "oneri di sistema = rete", "qualsiasi formato" | GFX-12 · QA | collega | chiuso (sessione QA, giro 3): testi riscritti ("termine di paragone", definizione di oneri di sistema dal glossario rivisto, "PDF o Excel"); i testi del deck passati da `content_guard`, 0 violazioni |
+| QA-28 | Alta | Presentazione | Before/After: i box ad altezza fissa tagliano totale bolletta e glossario | GFX-07 | collega | chiuso (sessione QA, giro 3): Before/After con estratti reali dei documenti di Marco e i numeri prodotti dall'app; box ad altezza libera, verificati a 1280×720 |
+| QA-29 | Alta | Presentazione | Testo troppo piccolo per il proiettore (12-13px) e deck che non scala a 1920 | GFX-08/09 | collega | chiuso (sessione QA, giro 3): palco fisso 1600×900 scalato sullo schermo, stesso layout a 1280 e a 1920; testo minimo circa 13,6px a 1280 e 20px a 1920, corpo 18-24px |
+| QA-30 | Alta | Presentazione | Icone da CDN: offline spariscono | GFX-04 · FAC-04 · CHK-04 | collega | chiuso (sessione QA, giro 3): nessuna risorsa remota, icone sostituite dal simbolo `>` |
 | QA-31 | Alta | App UI | Tema non fissato (dark mode illeggibile), pulsanti rossi, toolbar di sviluppo visibile | GFX-17/21/23 | sviluppo | chiuso (sviluppo): `app/.streamlit/config.toml`, letto accanto allo script anche avviando dalla root (Streamlit 1.65); tema chiaro con i colori, il font e gli angoli della presentazione (su indicazione dell'utente, non il viola Accenture), toolbar minima; palette dei grafici allineata al deck e rivalidata. `.gitignore` ora ignora solo `secrets.toml` |
 | QA-32 | Alta | App UI | Importi non in formato italiano in tabelle e assi | GFX-18 | sviluppo | parziale (sviluppo): assi in formato italiano (1.800). Nelle tabelle editabili resta "1620.00 €", perché i formati localizzati di Streamlit seguono la lingua del browser (in inglese: "€1,620.00") |
 | QA-33 | Alta | App UI | Ciambella tagliata e legenda sovrapposta a 1280×720 | GFX-19 | sviluppo | chiuso (sviluppo): raggio 110, legenda sotto su 2 colonne, colonna più larga (3:2); verificato a 1280×720 |
-| QA-09 | Media | Verifica umana | Definizioni del glossario "riviste a mano" senza firma nel log | QA · FAC | team | pre-filtro pronto in `verifica-umana.md`: manca la firma umana |
+| QA-09 | Media | Verifica umana | Definizioni del glossario "riviste a mano" senza firma nel log | QA · FAC | team | aperto, ambito esteso (FAC-09 · CHK-13): 4 righe di pre-filtro in `verifica-umana.md` senza firma umana (glossario, testi fissi, estrazione reale). Può firmarle solo una persona |
 | QA-34 | Media | App / prompt | Bolletta estratta in 13 righe (IVA e accise come spese separate) | QA (estrazione reale) | sviluppo | chiuso (sviluppo): regola bollette in `agents/prompts/estrazione.md` (una voce per servizio, IVA inclusa, più bollo e mora). **Verificato da QA**: bolletta di Marco in 5 righe, totale 130,95 € invariato |
 | QA-35 | Media | Glossario | Offline mancano le definizioni dei termini dei documenti demo reali | QA (estrazione reale) | sviluppo | chiuso (sviluppo): 10 definizioni nuove e RID riconosciuto; firma umana da fare (riga in `verifica-umana.md`) |
 | QA-36 | Media | Dati demo | Dati in formato reale nel repo pubblico (P.IVA valida, CF, targa); date 2025 | QA | team | in parte chiuso (sessione QA): P.IVA valida di Innovatech sostituita con una non valida nella copia in `app/demo_assets/` (il resto del PDF è invariato); le altre P.IVA e l'IBAN di Marco hanno checksum non validi. **Resta** (decisione del team): CF in formato reale, date settembre 2025 |
-| QA-37 | Media | Presentazione | Contrasti sotto AA, gerarchia incoerente, 4 passi nel deck contro 3 nell'app | GFX-13/14/15 | collega | aperto |
+| QA-37 | Media | Presentazione | Contrasti sotto AA, gerarchia incoerente, 4 passi nel deck contro 3 nell'app | GFX-13/14/15 | collega | chiuso (sessione QA, giro 3): testo secondario `#B3B3B3` e viola chiaro `#BE82FF` su nero (sopra AA); 3 passi come nell'app |
 | QA-38 | Media | App UI | Tabelle con doppio scroll, risultati lunghi 4,4 schermate, messaggi tecnici all'utente | GFX-20/24/25 | sviluppo | chiuso (sviluppo): tabelle alte quanto le righe e con larghezze in px (niente scroll a 1280); risultati in 5 schede; costi ed errori della CLI in "Dettagli tecnici" |
 | QA-39 | Media | App UI | Disclaimer duplicato in due box | GFX-22 | sviluppo | chiuso (sviluppo): una volta sola, sotto il titolo di ogni passo (la sidebar si può chiudere) |
 | QA-40 | Media | Comprensione | Colonne Tipo/Periodicità non spiegate, 50/30/20 denso, glossario con termini assenti | UT-01/02/04/05 · copy | sviluppo | chiuso (sviluppo): `help` sulle colonne, 50/30/20 in 3 numeri in grassetto, ogni termine indica dove compare. I termini presenti solo nel testo dei documenti restano, perché RF-04 li include ("termini incontrati nei documenti caricati") |
 | QA-14 | Bassa | Coerenza | Team di 3 o di 2 persone? | QA · FAC | team | aperto |
-| QA-15 | Bassa | Pattern | Skill `accenture-html-deck` diversa dal deck consegnato | QA · FAC · CHK | collega + sessione QA | aperto |
-| QA-41 | Bassa | Presentazione | "Hagenthon 2025", nomi del team mancanti, nessun link al repo, navigazione dispersa | FAC-06 · CHK-05/06 · GFX-16 | collega | aperto |
+| QA-15 | Bassa | Pattern | Skill `accenture-html-deck` diversa dal deck consegnato | QA · FAC · CHK | collega + sessione QA | chiuso (sessione QA, giro 3): il deck segue la skill (brand, scaletta, nessuna risorsa remota, nessun segnaposto) |
+| QA-41 | Bassa | Presentazione | "Hagenthon 2025", nomi del team mancanti, nessun link al repo, navigazione dispersa | FAC-06 · CHK-05/06 · GFX-16 | collega | in parte (sessione QA, giro 3): anno 2026, link al repo in copertina e in chiusura, navigazione unica; **mancano i nomi del team** (da inserire dal team) |
 | QA-42 | Bassa | App UI | Uploader in inglese, colori delle categorie, barre senza etichette, palette diversa dal deck | GFX-26/27/28 | sviluppo | parziale (sviluppo): "Altro" in grigio, % sulle barre 50/30/20, primario viola come il brand. I testi dell'uploader non sono traducibili da Streamlit |
 | QA-43 | Bassa | Pulizia | Prompt orfano `agents/prompts/spiega_concetto.md` | CHK-08 | sessione QA | chiuso (sessione QA): file rimosso, nessun riferimento nel codice |
-| QA-44 | Media | App / prompt | L'estrazione mette il mutuo in Debiti/finanziamenti e il ristorante in Svago; la spec §4.2 li vuole in Abitazione e Alimentari | QA (estrazione reale) | sviluppo | chiuso (sviluppo): regole di categoria in `agents/prompts/estrazione.md`, cache rifatta sui 5 documenti. Da verificare nel giro QA finale |
-| QA-45 | Media | App | Falso doppione: in Marco "Imposta di bollo 2,00 € (bolletta)" e "Commissione di gestione 2,00 € (estratto conto)" segnalati come possibile doppione solo per l'importo uguale | QA (estrazione reale) | sviluppo | chiuso (sviluppo): le voci di un file già abbinato come totale non vengono riabbinate una per una; test `test_bill_items_are_not_matched_one_by_one_once_the_bill_total_is_matched`. Doppioni ora tolti in automatico e mostrati in giallo in conferma |
+| QA-44 | Media | App / prompt | L'estrazione mette il mutuo in Debiti/finanziamenti e il ristorante in Svago; la spec §4.2 li vuole in Abitazione e Alimentari | QA (estrazione reale) | sviluppo | chiuso (sviluppo); **verificato da QA** al giro 3 sull'estrazione reale: mutuo in Abitazione, ristorante in Alimentari |
+| QA-45 | Media | App | Falso doppione: in Marco "Imposta di bollo 2,00 € (bolletta)" e "Commissione di gestione 2,00 € (estratto conto)" segnalati come possibile doppione solo per l'importo uguale | QA (estrazione reale) | sviluppo | chiuso (sviluppo); **verificato da QA** al giro 3: bollo e commissione da 2 € restano entrambi |
+| QA-46 | Alta | Demo / app | Regressione: con il nuovo tipo "una tantum" l'estrazione segnava "Acquisto libri 45 €" anche come annuale, e Alessandra usciva a 1.173,49 € invece di 1.132,24 € | QA (end-to-end giro 3) | sviluppo | chiuso (sviluppo, 97b88ad): una voce una tantum conta per intero nel mese; **verificato da QA** sull'estrazione reale |
+| QA-47 | Media | App | Al secondo caricamento i doppioni venivano ricalcolati sulla lista già ripulita: rischio di togliere il bollo da 2 € o la commissione da 2 € | QA (end-to-end giro 3) | sviluppo | chiuso (sviluppo, bce621b): si considerano solo le coppie con una voce del nuovo caricamento; **verificato da QA**: 0 voci tolte al secondo passaggio |
+| QA-48 | Media | Coerenza | Percentuali per categoria di Marco nel deliverable diverse da quelle live (bar in Alimentari, mora in Altro) | QA (end-to-end giro 3) | sessione QA | chiuso (sessione QA, b7a29d9): `demo_data` e deliverable allineati ai numeri live; totali invariati |
+| QA-49 | Media | Comprensione | Testi dei risultati: "risparmio di −81,56 € mantenendo il ritmo", tipi di spesa non spiegati sotto le metriche, necessità oltre il 100% | UT-01/02/03 | sviluppo | chiuso (sviluppo, bce621b); verificato da QA nei testi di `main.py` |
+| QA-50 | Alta | App | "Aggiungi una voce": il Tipo restava "variabile" anche con Abitazione (percentuali fisse e variabili falsate); i campi non si azzeravano | GFX-33 | sviluppo | chiuso (sviluppo, c935325): chiave del Tipo legata alla categoria, campi azzerati; 2 test |
+| QA-51 | Media | App UI | Righe modello a 0 €, "None" nella colonna di origine, reset senza conferma, risultati sotto la piega, box blu fuori palette, etichette 50/30/20 arrotondate | GFX-30/31/32/34/36/37 | sviluppo | chiuso (sviluppo, c935325) |
+| QA-52 | Media | Coerenza | Il deck ora è sul brand Accenture (viola), l'app resta verde e beige | GFX-29 | utente | aperto: **decisione dell'utente**. Token pronti nel report GFX (primario `#A100FF`, sfondo bianco, testo nero, Arial), circa 15 minuti di sviluppo |
+| QA-53 | Bassa | Demo | Con soli dati inseriti a mano il glossario dice "nessun termine riconosciuto" | GFX-35 | team | accettato: la demo si fa con i documenti dopo il prewarm, dove il glossario si riempie |
 | QA-04 | Alta | Qualità tecnica | `app/requirements.txt` incompleto | QA | sviluppo | chiuso (sviluppo), verificato da QA |
 | QA-05 | Alta | Requisiti | `app/main.py` era lo scheletro | QA | sviluppo | chiuso (sviluppo), verificato da QA e CHK (matrice RF) |
 | QA-08 | Media | Tema 02 | 50/30/20: "Altro" tra i desideri | QA | sviluppo | chiuso (sviluppo), verificato da QA |
@@ -304,6 +343,12 @@ Va scelta **una** storia, e deck, dati di esempio (fallback), deliverable e copi
 
 ---
 
+## Limiti emersi negli strumenti di QA (giro 3)
+- **Profilo non registrato**: `qa-utente-target` non risultava tra i subagent della sessione. È stato lanciato come agente generico con la stessa definizione, su Sonnet.
+- **Utente target su Sonnet, con i numeri verificati in mano**: nessun importo inventato, a differenza del giro 2 su Haiku. La definizione ora lo prescrive.
+- **`finsup-copy-reviewer`**: interrotto da un errore API dopo aver prodotto la tabella dei findings, che è stata comunque usata.
+- **Il QA statico non vede le regressioni dei dati**: QA-46, QA-47 e QA-48 sono emersi solo dall'estrazione reale end-to-end, che va rifatta a ogni cambio di prompt o schema.
+
 ## Limiti emersi negli strumenti di QA (giro 2)
 - **Registrazione dei subagent**: i profili nuovi in `.claude/agents/` sono stati riconosciuti solo a giro avviato. Il giro 2 è stato quindi eseguito con agenti generici, con la **stessa definizione** e lo **stesso modello** di ciascun profilo. Dal prossimo giro `/qa-review` li usa direttamente.
 - **`finsup-copy-reviewer` (Haiku)**: ha promosso i testi di QA-27. Il pre-filtro non sostituisce la persona. Valutare in `content_guard` un pattern per i verbi prescrittivi in terza persona ("consiglia", "raccomanda", "suggerisce di").
@@ -311,10 +356,10 @@ Va scelta **una** storia, e deck, dati di esempio (fallback), deliverable e copi
 - **Costo del giro 2**: circa 566k token di subagent, ciascuno nel proprio contesto; al thread principale sono tornati solo i report. Estrazione reale: $0.17.
 
 ## Da ricontrollare al freeze (passaggio QA finale)
-- [ ] Tutti i Bloccanti e gli Alta chiusi o motivati
-- [ ] `pytest app` verde da un clone pulito con `pip install -r app/requirements.txt`
-- [ ] Root: solo `app/`, `agents/`, `presentation/`, `README.md`, più i file richiesti da Claude Code (`CLAUDE.md`, `.claude/`, `.gitignore`)
-- [ ] Link relativi di `README.md` e `agents/README.md` tutti funzionanti
-- [ ] Ogni affermazione di README e presentazione (numeri, componenti, "blocca", "rivisto a mano") ha un file o una riga di log che la prova
-- [ ] Demo provata end-to-end con i documenti dello scenario scelto, con la CLI **e** senza (fallback)
+- [x] Tutti i Bloccanti e gli Alta chiusi o motivati (giro 3: resta QA-06, Alta, motivato: hook testato, non ancora visto bloccare dal vivo)
+- [x] `pytest app` verde da un clone pulito con `pip install -r app/requirements.txt`
+- [x] Root: solo `app/`, `agents/`, `presentation/`, `README.md`, più i file richiesti da Claude Code (`CLAUDE.md`, `.claude/`, `.gitignore`)
+- [x] Link relativi di `README.md` e `agents/README.md` tutti funzionanti
+- [x] Ogni affermazione di README e presentazione (numeri, componenti, "blocca", "rivisto a mano") ha un file o una riga di log che la prova
+- [x] Demo provata end-to-end con i documenti dello scenario scelto, con la CLI **e** senza (fallback)
 - [ ] `git status` pulito e `git log origin/main` contiene tutto

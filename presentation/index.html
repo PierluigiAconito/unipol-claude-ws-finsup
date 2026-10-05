@@ -3,545 +3,621 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BudgetFacile</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<title>BudgetFacile · Hagenthon 2026, Tema 02</title>
 <style>
+/* Brand Accenture (vedi agents/skills/accenture-html-deck/SKILL.md): nero, bianco, viola core,
+   simbolo ">" come motivo ricorrente. File autosufficiente: nessuna risorsa remota. */
 :root {
-  --bg:      #F4F2ED;
-  --surf:    #FFFFFF;
-  --surf2:   #ECEAE3;
-  --text:    #1A1A28;
-  --muted:   #6A6A7E;
-  --hint:    #B0AFBA;
-  --acc:     #006B54;
-  --acc-l:   #E5F2EE;
-  --acc-m:   #00A880;
-  --red:     #C43B3B;
-  --red-l:   #FAEAEA;
-  --amber:   #D07010;
-  --amber-l: #FDF3E5;
-  --r: 12px;
+  --bg: #000000;
+  --text: #FFFFFF;
+  --muted: #B3B3B3;
+  --acc: #A100FF;      /* viola core: grafica, numeri grandi, simbolo > */
+  --acc-l: #BE82FF;    /* viola chiaro: testo piccolo su nero */
+  --acc-d: #7500C0;
+  --acc-dd: #460073;
+  --card: #0D0D0D;
+  --line: #262626;
+  --neg: #FF6B81;      /* solo per il risparmio negativo */
+  --dup: #FFF4C2;      /* giallo dei doppioni, come nell'app */
 }
-
 * { margin:0; padding:0; box-sizing:border-box; }
-html, body { width:100%; height:100%; overflow:hidden; background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+html, body { width:100%; height:100%; overflow:hidden; background:var(--bg); color:var(--text);
+  font-family: Graphik, Arial, Helvetica, sans-serif; -webkit-font-smoothing:antialiased; }
 
-/* ── CHROME ── */
-#bar { position:fixed; top:0; left:0; height:3px; background:var(--acc); transition:width .4s ease; z-index:300; }
+/* Palco fisso 1600x900, scalato per stare nello schermo: stesso layout a 1280 e a 1920 */
+#stage { position:absolute; left:50%; top:50%; width:1600px; height:900px;
+  transform: translate(-50%, -50%) scale(var(--s, 1)); transform-origin:center; }
+#bar { position:absolute; top:0; left:0; height:6px; background:var(--acc); transition:width .35s ease; z-index:5; }
+#deck { position:absolute; inset:0 0 72px 0; overflow:hidden; }
+.slide { position:absolute; inset:0; padding:64px 96px 24px; display:flex; flex-direction:column; justify-content:center;
+  opacity:0; visibility:hidden; transition:opacity .3s ease; }
+.slide.active { opacity:1; visibility:visible; }
 
-#chrome {
-  position:fixed; bottom:0; left:0; right:0; height:52px;
-  display:flex; align-items:center; justify-content:space-between;
-  padding:0 28px; z-index:300;
-  background:linear-gradient(to top, var(--bg) 60%, transparent);
-}
+/* Tipografia */
+.eyebrow { font-size:18px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:var(--acc-l); margin-bottom:18px; }
+h1 { font-size:132px; font-weight:800; line-height:1; letter-spacing:-4px; }
+h2 { font-size:52px; font-weight:800; line-height:1.12; letter-spacing:-1.5px; margin-bottom:34px; max-width:1300px; }
+h3 { font-size:26px; font-weight:700; margin-bottom:10px; }
+p, li { font-size:24px; line-height:1.45; }
+.muted { color:var(--muted); }
+.acc { color:var(--acc); }
+.accl { color:var(--acc-l); }
+.gt { color:var(--acc); font-weight:800; }
+.small { font-size:20px; line-height:1.4; }
+.note { font-size:18px; color:var(--muted); margin-top:20px; }
+strong { font-weight:700; }
 
-.nav-btn {
-  background:var(--surf); border:1px solid var(--surf2);
-  color:var(--muted); padding:7px 18px; border-radius:8px;
-  cursor:pointer; font-size:13px; font-family:inherit;
-  transition:all .18s; box-shadow:0 1px 3px rgba(0,0,0,.06);
-}
-.nav-btn:hover:not(:disabled) { border-color:var(--acc); color:var(--acc); }
-.nav-btn:disabled { opacity:.3; cursor:default; }
-.nav-btn.annex-btn { background:var(--acc-l); border-color:rgba(0,107,84,.2); color:var(--acc); font-weight:600; }
-.nav-btn.annex-btn:hover:not(:disabled) { background:var(--acc); color:#fff; }
+/* Elenchi con il simbolo > */
+ul.gt-list { list-style:none; display:flex; flex-direction:column; gap:12px; }
+ul.gt-list li { padding-left:34px; position:relative; color:var(--muted); }
+ul.gt-list li strong { color:var(--text); }
+ul.gt-list li::before { content:">"; position:absolute; left:0; top:0; color:var(--acc); font-weight:800; }
+ul.gt-list.tight { gap:8px; }
+ul.gt-list.tight li { font-size:21px; }
 
-#dots { display:flex; gap:5px; align-items:center; }
-.dot { width:6px; height:6px; border-radius:50%; background:var(--hint); cursor:pointer; transition:all .25s; }
-.dot.on { background:var(--acc); width:18px; border-radius:3px; }
-.dot.annex-dot { background:rgba(0,107,84,.3); }
-.dot.annex-dot.on { background:var(--acc); }
+/* Card e griglie */
+.card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:26px 28px; }
+.card.acc-top { border-top:4px solid var(--acc); }
+.g2 { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+.g3 { display:grid; grid-template-columns:repeat(3, 1fr); gap:22px; }
+.g2x3 { display:grid; grid-template-columns:repeat(3, 1fr); grid-template-rows:auto auto; gap:18px; }
 
-#counter { font-size:12px; color:var(--muted); min-width:48px; text-align:right; font-variant-numeric:tabular-nums; }
+/* Copertina */
+.cover { justify-content:center; }
+.cover .big-gt { position:absolute; right:110px; top:150px; font-size:520px; font-weight:800; line-height:1; color:var(--acc); }
+.cover .lead { font-size:36px; line-height:1.35; max-width:1150px; margin-top:34px; }
+.cover .chips { display:flex; gap:16px; margin-top:56px; flex-wrap:wrap; }
+.chip { font-size:20px; color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:10px 22px; }
+.chip strong { color:var(--text); }
 
-/* ── DECK ── */
-#deck { position:relative; width:100%; height:calc(100vh - 52px); overflow:hidden; }
-.slide { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:flex-start; padding:56px 80px 24px; opacity:0; transform:translateX(24px); transition:opacity .35s ease, transform .35s ease; pointer-events:none; }
-.slide.active { opacity:1; transform:translateX(0); pointer-events:all; }
+/* Problema */
+.quote { font-size:58px; font-weight:800; line-height:1.15; letter-spacing:-1.5px; max-width:1350px; margin-bottom:40px; }
+.quote .gt { margin-right:16px; }
+.stat { font-size:84px; font-weight:800; color:var(--acc); line-height:1; letter-spacing:-3px; margin-bottom:10px; }
+.jargon { display:flex; flex-wrap:wrap; gap:12px; margin-top:28px; align-items:center; }
+.jargon span.term { font-size:22px; color:var(--acc-l); border:1px solid var(--acc-dd); border-radius:8px; padding:6px 14px; }
 
-/* ── LAYOUT VARIANTS ── */
-.slide-split { flex-direction:row; align-items:stretch; padding:0; gap:0; }
-.split-left  { flex:0 0 42%; background:var(--acc); color:#fff; padding:56px 52px; display:flex; flex-direction:column; justify-content:center; }
-.split-right { flex:1; padding:56px 64px; display:flex; flex-direction:column; justify-content:center; overflow:auto; }
-.split-left .muted { color:rgba(255,255,255,.65); }
+/* Passi */
+.steps { display:grid; grid-template-columns:1fr 60px 1fr 60px 1fr; align-items:stretch; }
+.step-arrow { display:flex; align-items:center; justify-content:center; font-size:56px; font-weight:800; color:var(--acc); }
+.step .n { font-size:72px; font-weight:800; color:var(--acc); line-height:1; margin-bottom:14px; }
+.step p { font-size:22px; color:var(--muted); }
+.banner { margin-top:34px; border-left:6px solid var(--acc); padding:16px 26px; background:var(--card); font-size:26px; font-weight:700; }
 
-.slide-full { justify-content:center; align-items:center; text-align:center; }
+/* Before / After */
+.ba { display:grid; grid-template-columns:1fr 64px 1fr; gap:0; align-items:stretch; }
+.ba .arrow { display:flex; align-items:center; justify-content:center; font-size:64px; font-weight:800; color:var(--acc); }
+.ba-lbl { font-size:18px; font-weight:700; letter-spacing:3px; text-transform:uppercase; margin-bottom:14px; }
+.mono { font-family: ui-monospace, Consolas, "Courier New", monospace; font-size:17.5px; line-height:1.55; color:var(--muted); }
+.mono .doc { color:var(--text); font-weight:700; margin-top:10px; display:block; }
+.mono .doc:first-child { margin-top:0; }
+.mono .row { display:flex; justify-content:space-between; gap:16px; }
+.mono .tot { color:var(--text); font-weight:700; }
+.hl { color:var(--acc-l); border-bottom:2px dotted var(--acc); }
+.dupmark { background:var(--dup); color:#1A1A28; border-radius:4px; padding:0 6px; font-weight:700; }
+.metrics { display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; margin-bottom:18px; }
+.metric .lbl { font-size:17px; color:var(--muted); margin-bottom:6px; }
+.metric .val { font-size:36px; font-weight:800; letter-spacing:-1px; }
+.metric .val.neg { color:var(--neg); }
+.bars { display:flex; flex-direction:column; gap:7px; margin:6px 0 14px; }
+.barrow { display:grid; grid-template-columns:230px 1fr 76px; align-items:center; gap:12px; font-size:18px; color:var(--muted); }
+.barrow .track { height:14px; background:#1A1A1A; border-radius:7px; overflow:hidden; }
+.barrow .fill { height:100%; background:var(--acc); border-radius:7px; }
+.barrow .pct { text-align:right; color:var(--text); font-weight:700; }
+.gloss { border-top:1px solid var(--line); padding-top:12px; font-size:18px; line-height:1.45; color:var(--muted); }
+.gloss strong { color:var(--acc-l); }
 
-/* ── TYPE ── */
-.eyebrow { font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--acc); margin-bottom:16px; }
-.eyebrow.white { color:rgba(255,255,255,.75); }
+/* Demo */
+.scen { display:flex; flex-direction:column; gap:10px; }
+.scen .who { font-size:30px; font-weight:800; }
+.scen .tag { font-size:18px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--acc-l); }
+.scen .res { font-size:56px; font-weight:800; letter-spacing:-2px; margin-top:6px; }
+.scen .res.neg { color:var(--neg); }
+.demo-cta { display:inline-flex; align-items:center; gap:14px; margin-top:34px; background:var(--acc); color:#fff; border:none; border-radius:10px;
+  padding:18px 34px; font-size:26px; font-weight:700; font-family:inherit; cursor:pointer; }
+.demo-cta:hover, .demo-cta:focus-visible { background:var(--acc-d); outline:3px solid var(--acc-l); outline-offset:3px; }
+.demo-cta .url { font-family: ui-monospace, Consolas, monospace; font-size:20px; font-weight:400; opacity:.9; }
 
-h1 { font-size:58px; font-weight:800; line-height:1.04; letter-spacing:-2px; margin-bottom:18px; }
-h1.hero { font-size:72px; letter-spacing:-3px; }
-h2 { font-size:38px; font-weight:800; line-height:1.1; letter-spacing:-1.5px; margin-bottom:24px; }
-h2.sm { font-size:30px; letter-spacing:-1px; }
-.lead { font-size:18px; line-height:1.7; color:var(--muted); max-width:540px; margin-bottom:32px; }
-.lead.white { color:rgba(255,255,255,.75); }
-.big-num { font-size:80px; font-weight:900; letter-spacing:-4px; line-height:1; color:var(--acc); }
+/* Flussi (modello agentico) */
+.flow { display:flex; align-items:stretch; gap:0; }
+.flow .node { flex:1; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px 18px; }
+.flow .node.ai { border-color:var(--acc); }
+.flow .node.human { border-color:var(--text); }
+.flow .node .kind { font-size:17px; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-bottom:8px; }
+.flow .node.ai .kind { color:var(--acc-l); }
+.flow .node.code .kind { color:var(--muted); }
+.flow .node.human .kind { color:var(--text); }
+.flow .node h3 { font-size:23px; margin-bottom:8px; }
+.flow .node p { font-size:18px; line-height:1.4; color:var(--muted); }
+.flow .sep { flex:0 0 44px; display:flex; align-items:center; justify-content:center; font-size:40px; font-weight:800; color:var(--acc); }
+.legend { display:flex; gap:28px; margin-top:24px; font-size:19px; color:var(--muted); flex-wrap:wrap; }
+.legend span::before { content:""; display:inline-block; width:16px; height:16px; border-radius:4px; margin-right:10px; vertical-align:-2px; border:2px solid var(--line); }
+.legend .l-ai::before { border-color:var(--acc); }
+.legend .l-human::before { border-color:var(--text); }
 
-/* ── TAGS / PILLS ── */
-.pill { display:inline-flex; align-items:center; gap:6px; background:var(--acc-l); color:var(--acc); font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; padding:4px 12px; border-radius:100px; margin-bottom:22px; }
-.pill.white { background:rgba(255,255,255,.15); color:#fff; border:1px solid rgba(255,255,255,.25); }
+.comp h3 { font-size:22px; margin-bottom:6px; }
+.comp .kind { font-size:17px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--acc-l); margin-bottom:8px; }
+.comp p { font-size:18.5px; line-height:1.42; color:var(--muted); }
+.comp code, .mono-i { font-family: ui-monospace, Consolas, monospace; font-size:.92em; color:var(--text); }
 
-/* ── CARDS ── */
-.card { background:var(--surf); border-radius:var(--r); padding:22px 24px; border:1px solid rgba(0,0,0,.06); }
-.card.green { border-left:3px solid var(--acc); }
-.card.red { border-left:3px solid var(--red); }
+.sessions { display:grid; grid-template-columns:1fr 220px 1fr; align-items:center; }
+.sessions .link { text-align:center; color:var(--acc-l); font-size:18px; line-height:1.35; padding:0 10px; }
+.sessions .link .gt { font-size:40px; display:block; }
+.pipe { display:flex; flex-wrap:nowrap; align-items:center; margin-top:26px; }
+.pipe span.st { font-size:18px; white-space:nowrap; background:var(--card); border:1px solid var(--line); border-radius:8px; padding:9px 12px; }
+.pipe span.st.gate { border-color:var(--acc); }
+.pipe span.st.human { border-color:var(--text); }
+.pipe span.gt { margin:0 7px; font-size:22px; }
 
-/* ── GRID ── */
-.g2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; width:100%; }
-.g3 { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; width:100%; }
+.kpi { font-size:54px; font-weight:800; color:var(--acc); letter-spacing:-2px; line-height:1; }
+.kpi-lbl { font-size:18px; color:var(--muted); margin-top:6px; line-height:1.35; }
+.kpis { display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-bottom:24px; }
 
-/* ── PILLAR CARD ── */
-.pillar { background:var(--surf); border:1px solid rgba(0,0,0,.06); border-radius:var(--r); padding:20px 22px; }
-.pillar i { font-size:22px; color:var(--acc); margin-bottom:10px; display:block; }
-.pillar h3 { font-size:15px; font-weight:700; margin-bottom:6px; }
-.pillar p { font-size:13px; color:var(--muted); line-height:1.5; }
+/* Risk & Clarity */
+.rc h3 { font-size:24px; margin-bottom:14px; }
+.rc .head { font-size:17px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--acc-l); margin-bottom:12px; }
+.closing { display:flex; justify-content:space-between; align-items:center; margin-top:30px; border-top:1px solid var(--line); padding-top:22px; }
+.closing .repo { font-family: ui-monospace, Consolas, monospace; font-size:22px; }
+.closing .thanks { font-size:40px; font-weight:800; }
 
-/* ── STEP FLOW ── */
-.steps { display:flex; gap:0; width:100%; margin-top:20px; }
-.step { flex:1; position:relative; padding:0 12px; }
-.step:not(:last-child)::after { content:''; position:absolute; right:-1px; top:22px; width:24px; height:2px; background:var(--surf2); }
-.step-n { width:44px; height:44px; border-radius:50%; background:var(--acc-l); border:2px solid var(--acc); display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:800; color:var(--acc); margin:0 auto 10px; }
-.step h4 { font-size:13px; font-weight:700; text-align:center; margin-bottom:4px; }
-.step p { font-size:12px; color:var(--muted); text-align:center; line-height:1.4; }
+/* Annex */
+.annex-label { display:inline-block; font-size:17px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:var(--acc-l);
+  border:1px solid var(--acc-dd); border-radius:8px; padding:6px 14px; margin-bottom:22px; align-self:flex-start; }
+table.num { width:100%; border-collapse:collapse; font-size:21px; }
+table.num th, table.num td { text-align:left; padding:12px 16px; border-bottom:1px solid var(--line); vertical-align:top; }
+table.num th { color:var(--acc-l); font-size:17px; letter-spacing:2px; text-transform:uppercase; }
+table.num td:first-child { color:var(--muted); width:24%; }
+table.num td.neg { color:var(--neg); font-weight:700; }
+pre.tree { font-family: ui-monospace, Consolas, monospace; font-size:20px; line-height:1.5; color:var(--muted); }
+pre.tree b { color:var(--text); }
+pre.tree i { color:var(--acc-l); font-style:normal; }
 
-/* ── BEFORE / AFTER ── */
-.ba { display:grid; grid-template-columns:1fr 40px 1fr; gap:14px; align-items:center; width:100%; }
-.ba-box { background:var(--surf); border-radius:var(--r); padding:18px 20px; height:280px; overflow:hidden; }
-.ba-box.before { border:1px solid rgba(196,59,59,.25); }
-.ba-box.after  { border:1px solid rgba(0,107,84,.25); }
-.ba-lbl { font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-bottom:10px; }
-.ba-box.before .ba-lbl { color:var(--red); }
-.ba-box.after  .ba-lbl { color:var(--acc); }
-.mono { font-family:'Courier New',monospace; font-size:10.5px; line-height:1.85; color:var(--muted); }
-.hl { background:var(--red-l); color:var(--red); border-radius:3px; padding:0 3px; }
-.ba-arrow { text-align:center; font-size:24px; color:var(--acc-m); }
-
-/* ── BUDGET RESULT (after) ── */
-.budget-row { display:flex; justify-content:space-between; align-items:center; font-size:13px; padding:5px 0; border-bottom:1px solid var(--surf2); }
-.budget-row:last-child { border:none; }
-.budget-row .lbl { color:var(--muted); }
-.budget-row .val { font-weight:600; }
-.budget-row.total { font-size:15px; font-weight:700; padding-top:10px; }
-.budget-row.total .val { color:var(--acc); }
-.cat-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px; }
-
-/* ── STATEMENT SLIDE ── */
-.statement { font-size:28px; font-weight:700; line-height:1.45; max-width:700px; letter-spacing:-.5px; }
-.statement em { color:var(--acc); font-style:normal; }
-.quote-mark { font-size:72px; color:var(--acc-l); line-height:.5; margin-bottom:8px; font-family:Georgia,serif; font-weight:900; }
-
-/* ── ANNEX HEADER ── */
-.annex-label { font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--hint); background:var(--surf2); border-radius:6px; padding:3px 10px; margin-bottom:20px; display:inline-block; }
-
-/* ── FEAT LIST ── */
-.feat-list { display:flex; flex-direction:column; gap:8px; width:100%; }
-.feat { display:flex; align-items:flex-start; gap:12px; background:var(--surf); border:1px solid rgba(0,0,0,.05); border-radius:10px; padding:12px 16px; }
-.feat i { font-size:18px; color:var(--acc); flex-shrink:0; margin-top:1px; }
-.feat h4 { font-size:13px; font-weight:700; margin-bottom:2px; }
-.feat p { font-size:12px; color:var(--muted); }
-
-/* ── DONT LIST ── */
-.dont-list { display:flex; flex-direction:column; gap:8px; width:100%; }
-.dont { display:flex; align-items:center; gap:10px; background:var(--surf); border:1px solid rgba(196,59,59,.12); border-radius:10px; padding:11px 15px; font-size:13px; }
-.dont-x { color:var(--red); font-size:15px; flex-shrink:0; }
-
-/* ── RISK TWO COL ── */
-.risk-cols { display:grid; grid-template-columns:1fr 1fr; gap:24px; width:100%; }
-.rc-head { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:12px; }
-.rc-head.simp { color:var(--acc); }
-.rc-head.pres { color:var(--red); }
-.rc-item { display:flex; gap:8px; align-items:flex-start; font-size:13px; color:var(--muted); margin-bottom:9px; line-height:1.45; }
-.rc-dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; margin-top:5px; }
-.simp .rc-dot { background:var(--acc); }
-.pres .rc-dot { background:var(--red); }
-
-/* ── COVER TAGLINE ── */
-.tagline-row { display:flex; gap:12px; flex-wrap:wrap; margin-top:32px; }
-.tag-chip { font-size:12px; color:var(--muted); padding:5px 14px; border-radius:7px; background:var(--surf); border:1px solid rgba(0,0,0,.07); }
-
-/* ── DEMO PLACEHOLDER ── */
-.demo-shell { width:100%; background:var(--surf); border-radius:16px; border:1px solid rgba(0,0,0,.08); overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,.06); }
-.demo-bar-f { background:var(--surf2); padding:9px 14px; border-bottom:1px solid rgba(0,0,0,.06); display:flex; align-items:center; gap:7px; }
-.dm-dot { width:9px; height:9px; border-radius:50%; }
-.dm-url { flex:1; background:var(--bg); border:1px solid rgba(0,0,0,.07); border-radius:5px; padding:3px 10px; font-size:11px; color:var(--muted); font-family:monospace; }
-.demo-body-f { height:340px; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:14px; }
-.demo-body-f p { font-size:14px; color:var(--muted); }
-.demo-cta { background:var(--acc); color:#fff; border:none; padding:9px 24px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; transition:all .2s; }
-.demo-cta:hover { background:#005240; }
+/* Navigazione */
+#chrome { position:absolute; left:0; right:0; bottom:0; height:72px; display:flex; align-items:center; justify-content:space-between;
+  padding:0 96px; border-top:1px solid var(--line); font-size:18px; color:var(--muted); }
+#chrome .brand { font-weight:700; color:var(--text); }
+#chrome .brand .gt { margin-left:4px; }
+#nav { display:flex; align-items:center; gap:14px; }
+.nav-btn { background:transparent; border:1px solid var(--line); color:var(--text); border-radius:8px; padding:8px 18px; font-size:20px;
+  font-family:inherit; cursor:pointer; }
+.nav-btn:hover:not(:disabled), .nav-btn:focus-visible { border-color:var(--acc); color:var(--acc-l); outline:none; }
+.nav-btn:disabled { opacity:.35; cursor:default; }
+#dots { display:flex; gap:7px; align-items:center; }
+.dot { width:10px; height:10px; border-radius:50%; background:#3A3A3A; cursor:pointer; border:none; padding:0; }
+.dot.on { background:var(--acc); width:28px; border-radius:5px; }
+.dot.annex { background:#2A1A3A; }
+.dot.annex.on { background:var(--acc-l); }
+.dots-sep { width:1px; height:16px; background:var(--line); margin:0 6px; }
+#counter { min-width:80px; text-align:right; font-variant-numeric:tabular-nums; }
 </style>
 </head>
 <body>
-
+<div id="stage">
 <div id="bar"></div>
-<div id="deck">
+<main id="deck">
 
-<!-- ═══ 0 — COVER ═══ -->
-<div class="slide active" data-i="0">
-  <div class="pill"><i class="ti ti-chart-pie-2" aria-hidden="true"></i> Educazione finanziaria</div>
-  <h1>Budget<br><span style="color:var(--acc)">Facile</span></h1>
-  <p class="lead">Dall&rsquo;ammasso di documenti a un budget chiaro in pochi minuti.<br>Nessuna consulenza, nessun giudizio — solo consapevolezza.</p>
-  <div class="tagline-row">
-    <span class="tag-chip"><i class="ti ti-robot" aria-hidden="true"></i> Powered by Claude AI</span>
-    <span class="tag-chip"><i class="ti ti-users" aria-hidden="true"></i> Accenture Team</span>
-    <span class="tag-chip"><i class="ti ti-calendar" aria-hidden="true"></i> Hagenthon 2025</span>
+<!-- 1 · Copertina -->
+<section class="slide cover active" data-title="Copertina">
+  <div class="big-gt" aria-hidden="true">&gt;</div>
+  <div class="eyebrow">Hagenthon 2026 · Tema 02 · Inclusione finanziaria</div>
+  <h1>Budget<span class="acc">Facile</span></h1>
+  <p class="lead">Dai documenti che hai già a un budget mensile che <strong>capisci</strong>.<br><span class="muted">Uno strumento educativo: spiega, non consiglia.</span></p>
+  <div class="chips">
+    <span class="chip">Prototipo e2e costruito con <strong>Claude Code</strong></span>
+    <span class="chip">github.com/PierluigiAconito/<strong>unipol-claude-ws-finsup</strong></span>
   </div>
-</div>
+</section>
 
-<!-- ═══ 1 — IL PROBLEMA ═══ -->
-<div class="slide slide-split" data-i="1">
-  <div class="split-left">
-    <div class="eyebrow white">Il problema</div>
-    <div class="big-num" style="color:#fff; font-size:96px;">?</div>
-    <h2 style="color:#fff; font-size:28px; letter-spacing:-.5px; margin-top:8px; line-height:1.3;">
-      &ldquo;Quanto posso<br>risparmiare<br>questo mese?&rdquo;
-    </h2>
-    <p class="lead white" style="font-size:15px; margin-top:16px; margin-bottom:0;">
-      Una domanda semplice,<br>senza risposta chiara.
-    </p>
+<!-- 2 · Problema (User Difficulty Statement) -->
+<section class="slide" data-title="Il problema">
+  <div class="eyebrow">Il problema · User Difficulty Statement</div>
+  <p class="quote"><span class="gt">&gt;</span>&ldquo;Quanto spendo, per cosa, e quanto mi resta davvero?&rdquo;</p>
+  <div class="g3">
+    <div class="card"><div class="stat">3</div><p class="small muted"><strong style="color:#fff">documenti diversi</strong> ogni mese: busta paga, bolletta, estratto conto. Nessuno dice quanto resta.</p></div>
+    <div class="card"><div class="stat">13</div><p class="small muted"><strong style="color:#fff">righe di bolletta</strong> su 3 servizi, con due aliquote IVA, accise, oneri e mora.</p></div>
+    <div class="card"><div class="stat">2&times;</div><p class="small muted">Stipendio e bolletta <strong style="color:#fff">ricompaiono nell&rsquo;estratto conto</strong>: sommando a mano si contano due volte.</p></div>
   </div>
-  <div class="split-right">
-    <div class="eyebrow">Chi è l&rsquo;utente</div>
-    <h2 class="sm">Bassa alfabetizzazione<br>finanziaria, alta frustrazione</h2>
-    <p class="lead" style="margin-bottom:20px; font-size:16px;">
-      Ogni mese riceve buste paga, bollette ed estratti conto pieni di <strong>gergo tecnico</strong>. I dati sono sparsi, incomprensibili, non aggregati.
-    </p>
-    <div style="display:flex; flex-direction:column; gap:10px; width:100%;">
-      <div class="card green">
-        <div style="font-size:12px; font-weight:700; color:var(--acc); margin-bottom:4px;">Dove si blocca</div>
-        <div style="font-size:14px; color:var(--muted); line-height:1.5;">Non riesce ad aggregare entrate e uscite in un budget comprensibile né a interpretare le singole voci dei documenti.</div>
-      </div>
-      <div class="card green">
-        <div style="font-size:12px; font-weight:700; color:var(--acc); margin-bottom:4px;">Perché è urgente</div>
-        <div style="font-size:14px; color:var(--muted); line-height:1.5;">Senza un budget chiaro non può prendere decisioni quotidiane informate — è il prerequisito di qualsiasi altra scelta finanziaria.</div>
-      </div>
-    </div>
+  <div class="jargon">
+    <span class="small muted" style="margin-right:6px">Persona con bassa alfabetizzazione finanziaria. Il gergo che la blocca:</span>
+    <span class="term">TAEG</span><span class="term">oneri di sistema</span><span class="term">RID</span><span class="term">interessi di mora</span><span class="term">addizionale IRPEF</span>
   </div>
-</div>
+</section>
 
-<!-- ═══ 2 — LA SOLUZIONE ═══ -->
-<div class="slide" data-i="2">
+<!-- 3 · Soluzione -->
+<section class="slide" data-title="La soluzione">
   <div class="eyebrow">La soluzione</div>
-  <h2>Un&rsquo;app che traduce i tuoi<br>documenti in un budget chiaro</h2>
-  <div class="g2" style="margin-top:4px;">
-    <div class="pillar">
-      <i class="ti ti-file-import" aria-hidden="true"></i>
-      <h3>Legge i tuoi documenti</h3>
-      <p>Carica PDF o XLS così come li hai. Claude estrae entrate e uscite senza template fissi.</p>
-    </div>
-    <div class="pillar">
-      <i class="ti ti-layout-dashboard" aria-hidden="true"></i>
-      <h3>Costruisce il budget mensile</h3>
-      <p>Aggrega tutto: entrate, uscite per categoria, risparmio netto. Normalizza automaticamente periodicità diverse.</p>
-    </div>
-    <div class="pillar">
-      <i class="ti ti-vocabulary" aria-hidden="true"></i>
-      <h3>Traduce il gergo tecnico</h3>
-      <p>TAEG, IRPEF, interessi di mora — ogni termine viene spiegato in parole semplici, in contesto.</p>
-    </div>
-    <div class="pillar">
-      <i class="ti ti-chart-pie" aria-hidden="true"></i>
-      <h3>Mostra grafici e proiezioni</h3>
-      <p>Grafico ripartizione spese, confronto con benchmark 50/30/20, simulatore obiettivo di risparmio.</p>
-    </div>
-  </div>
-</div>
-
-<!-- ═══ 3 — COME FUNZIONA ═══ -->
-<div class="slide" data-i="3">
-  <div class="eyebrow">Come funziona</div>
-  <h2>4 passi per avere un budget chiaro</h2>
+  <h2>Tre passi, gli stessi dell&rsquo;app</h2>
   <div class="steps">
-    <div class="step">
-      <div class="step-n">1</div>
-      <h4>Carica i documenti</h4>
-      <p>PDF o XLS delle tue buste paga, bollette, estratti conto — qualsiasi formato.</p>
+    <div class="card step acc-top">
+      <div class="n">1</div><h3>Inserisci</h3>
+      <p>Carica PDF o Excel così come li hai, anche più di uno, oppure scrivi le voci a mano. Claude legge i documenti ed estrae entrate e uscite.</p>
     </div>
-    <div class="step">
-      <div class="step-n">2</div>
-      <h4>Claude estrae i dati</h4>
-      <p>AI legge e struttura automaticamente entrate e uscite, con importo e categoria.</p>
+    <div class="step-arrow" aria-hidden="true">&gt;</div>
+    <div class="card step acc-top">
+      <div class="n">2</div><h3>Conferma</h3>
+      <p>Ogni voce è visibile e modificabile, con il file da cui arriva. Le voci presenti in due documenti contano una volta sola e restano <span class="dupmark">in giallo</span>. Nessun calcolo prima della conferma.</p>
     </div>
-    <div class="step">
-      <div class="step-n">3</div>
-      <h4>Tu controlli tutto</h4>
-      <p>Schermata di conferma: modifica ogni voce prima che parta il calcolo.</p>
-    </div>
-    <div class="step">
-      <div class="step-n">4</div>
-      <h4>Vedi il tuo budget</h4>
-      <p>Riepilogo, grafici, glossario e simulatore obiettivo.</p>
+    <div class="step-arrow" aria-hidden="true">&gt;</div>
+    <div class="card step acc-top">
+      <div class="n">3</div><h3>Capisci</h3>
+      <p>Entrate, uscite e risparmio del mese, dove vanno i soldi, la regola 50/30/20 come termine di paragone, il glossario dei termini, i mesi per arrivare a un obiettivo.</p>
     </div>
   </div>
-  <div class="card green" style="margin-top:28px; padding:14px 20px; width:100%;">
-    <p style="font-size:14px; color:var(--muted); line-height:1.5;">
-      <i class="ti ti-shield-check" aria-hidden="true" style="color:var(--acc); margin-right:6px;"></i>
-      <strong>Nessun calcolo parte in automatico.</strong> La schermata di conferma è sempre obbligatoria — gli importi estratti sono visibili e modificabili prima di procedere.
-    </p>
-  </div>
-</div>
+  <div class="banner"><span class="gt">&gt;</span> L&rsquo;app spiega e mostra. Non dice mai cosa fare con i soldi.</div>
+</section>
 
-<!-- ═══ 4 — BEFORE / AFTER ═══ -->
-<div class="slide" data-i="4">
-  <div class="eyebrow">Before / after</div>
-  <h2 style="margin-bottom:16px;">Dal documento originale al budget leggibile</h2>
+<!-- 4 · Before / After (Marco, numeri reali) -->
+<section class="slide" data-title="Before / After" style="padding-top:44px">
+  <div class="eyebrow">Before / After · scenario Marco, basso risparmio</div>
+  <h2 style="margin-bottom:22px">Dal documento al budget, con i numeri veri</h2>
   <div class="ba">
-    <div class="ba-box before">
-      <div class="ba-lbl">Prima — documenti originali</div>
+    <div class="card">
+      <div class="ba-lbl muted">Prima: i documenti originali</div>
       <div class="mono">
-        CEDOLINO PAGA — Giu 2025<br>
-        Retrib. lorda: &nbsp; &nbsp; 2.100,00 €<br>
-        <span class="hl">Contr. INPS c/dip. (9,19%)</span>: -193 €<br>
-        <span class="hl">IRPEF lorda</span>: &nbsp; &nbsp; &nbsp; -456,00 €<br>
-        <span class="hl">Detr. lav. dip.</span>: &nbsp; &nbsp; &nbsp; +97,00 €<br>
-        <span class="hl">Addiz. regionale</span>: &nbsp; -28,00 €<br>
-        <span class="hl">Addiz. comunale</span>: &nbsp; &nbsp;-11,00 €<br>
-        Netto a pagare: <strong>1.509,00 €</strong><br><br>
-        BOLLETTA GAS — Giu 2025<br>
-        Quota fissa: &nbsp; &nbsp; &nbsp; 6,00 €<br>
-        <span class="hl">Oneri di sistema</span>: &nbsp; 14,30 €<br>
-        <span class="hl">Accisa gas metano</span>: &nbsp;8,10 €<br>
-        <span class="hl">IVA 22%</span>: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 12,40 €<br>
-        Totale bolletta: <strong>89,20 €</strong>
+        <span class="doc">Busta paga · settembre 2025</span>
+        <div class="row"><span>TOTALE RETRIBUZIONE LORDA</span><span>1.750,00</span></div>
+        <div class="row"><span><span class="hl">Contributi INPS</span> (IVS) 9,19%</span><span>160,83</span></div>
+        <div class="row"><span><span class="hl">IRPEF lorda</span> 23% · <span class="hl">detrazione</span> art. 13 TUIR</span><span>365,51 · 212,57</span></div>
+        <div class="row"><span><span class="hl">Addizionale</span> regionale e comunale</span><span>27,50</span></div>
+        <div class="row tot"><span>NETTO A PAGARE</span><span>1.408,73 &euro;</span></div>
+        <span class="doc">Bolletta multiservizi · 13 righe</span>
+        <div class="row"><span>Accise e <span class="hl">oneri di sistema</span> energia</span><span>2,72</span></div>
+        <div class="row"><span>IVA 10% su quota energia e rete</span><span>5,03</span></div>
+        <div class="row"><span><span class="hl">Interessi di mora</span> · D.Lgs. 231/2002</span><span>0,75</span></div>
+        <div class="row tot"><span>TOTALE DA PAGARE</span><span>130,95 &euro;</span></div>
+        <span class="doc">Estratto conto · 15 movimenti</span>
+        <div class="row"><span>Rata prestito nr. 14/48 (<span class="hl">TAEG</span> 8,99%)</span><span>285,00</span></div>
+        <div class="row"><span>Accredito stipendio</span><span>1.408,73</span></div>
+        <div class="row"><span>Bolletta NordEst (<span class="hl">addebito RID</span>)</span><span>130,95</span></div>
       </div>
     </div>
-    <div class="ba-arrow">&#8594;</div>
-    <div class="ba-box after">
-      <div class="ba-lbl">Dopo — il tuo budget chiaro</div>
-      <div class="budget-row" style="padding-top:0;">
-        <span class="lbl">Stipendio netto</span>
-        <span class="val" style="color:var(--acc);">+ 1.509 €</span>
+    <div class="arrow" aria-hidden="true">&gt;</div>
+    <div class="card">
+      <div class="ba-lbl accl">Dopo: BudgetFacile</div>
+      <div class="metrics">
+        <div class="metric"><div class="lbl">Entrate al mese</div><div class="val">1.408,73 &euro;</div></div>
+        <div class="metric"><div class="lbl">Uscite al mese</div><div class="val">1.490,29 &euro;</div></div>
+        <div class="metric"><div class="lbl">Risparmio al mese</div><div class="val neg">&minus;81,56 &euro;</div></div>
       </div>
-      <div style="font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--hint); margin:10px 0 6px;">Uscite mensili</div>
-      <div class="budget-row"><span class="lbl"><span class="cat-dot" style="background:#0070C0;"></span>Casa &amp; utenze</span><span class="val">680 €</span></div>
-      <div class="budget-row"><span class="lbl"><span class="cat-dot" style="background:#D07010;"></span>Trasporti</span><span class="val">120 €</span></div>
-      <div class="budget-row"><span class="lbl"><span class="cat-dot" style="background:#A100C0;"></span>Alimentari</span><span class="val">350 €</span></div>
-      <div class="budget-row"><span class="lbl"><span class="cat-dot" style="background:#606070;"></span>Altro</span><span class="val">200 €</span></div>
-      <div class="budget-row total"><span>Risparmio mensile</span><span class="val">+ 159 €</span></div>
-      <div style="font-size:11px; color:var(--muted); margin-top:8px;">Tasso di risparmio: <strong style="color:var(--acc);">10,5%</strong> &nbsp;·&nbsp; Benchmark 50/30/20 consiglia ≥ 20%</div>
-      <div style="margin-top:10px; background:var(--acc-l); border-radius:8px; padding:8px 12px; font-size:11px; color:var(--acc);">
-        <strong>Glossario:</strong> IRPEF = imposta nazionale sul reddito delle persone fisiche · Oneri di sistema = spese per rete e incentivi
+      <p class="small" style="margin-bottom:8px"><strong>Le uscite superano le entrate.</strong> <span class="muted">Le categorie che pesano di più:</span></p>
+      <div class="bars">
+        <div class="barrow"><span>Abitazione</span><div class="track"><div class="fill" style="width:52.2%"></div></div><span class="pct">52,2%</span></div>
+        <div class="barrow"><span>Debiti/finanziamenti</span><div class="track"><div class="fill" style="width:19.1%"></div></div><span class="pct">19,1%</span></div>
+        <div class="barrow"><span>Alimentari</span><div class="track"><div class="fill" style="width:16.0%"></div></div><span class="pct">16,0%</span></div>
+      </div>
+      <p class="small muted" style="font-size:18px; margin-bottom:12px"><span class="dupmark">Contati una volta sola</span> accredito dello stipendio e addebito della bolletta. Fotografia dei dati, non un giudizio: cosa farne resta una decisione dell&rsquo;utente.</p>
+      <div class="gloss">
+        <strong>TAEG</strong>: quanto costa davvero un prestito in un anno, contando interessi e altre spese obbligatorie.<br>
+        <strong>Oneri di sistema</strong>: costi generali del sistema elettrico e del gas fissati per legge, come gli incentivi alle rinnovabili.
       </div>
     </div>
   </div>
-  <p style="font-size:11px; color:var(--hint); margin-top:10px;">Valori fittizi a scopo illustrativo. Le voci in rosso sono i termini tecnici spiegati dal glossario contestuale.</p>
-</div>
+  <p class="note" style="margin-top:12px">Documenti fittizi in <span class="mono-i">app/demo_assets/</span>. Numeri prodotti dall&rsquo;app con l&rsquo;estrazione reale e verificati dai test; definizioni dal glossario rivisto dal team.</p>
+</section>
 
-<!-- ═══ 5 — DEMO ═══ -->
-<div class="slide slide-full" data-i="5">
+<!-- 5 · Demo -->
+<section class="slide" data-title="Demo">
   <div class="eyebrow">Demo live</div>
-  <h2 style="align-self:center; margin-bottom:16px;">Proviamola insieme</h2>
-  <div class="demo-shell" style="max-width:680px; width:100%;">
-    <div class="demo-bar-f">
-      <div class="dm-dot" style="background:#FF5F57;"></div>
-      <div class="dm-dot" style="background:#FFBD2E;"></div>
-      <div class="dm-dot" style="background:#28CA41;"></div>
-      <div class="dm-url" id="demo-url-lbl">localhost:8501</div>
+  <h2>Due scenari, gli stessi tre passi</h2>
+  <div class="g2">
+    <div class="card acc-top scen">
+      <span class="tag">Scenario 1 · basso risparmio</span>
+      <span class="who">Marco, commesso a Milano</span>
+      <p class="small muted">Busta paga + bolletta + estratto conto. L&rsquo;app toglie i due doppioni e mostra l&rsquo;avviso sulle categorie più pesanti, senza dire cosa tagliare.</p>
+      <span class="res neg">&minus;81,56 &euro; <span class="small muted" style="letter-spacing:0">al mese</span></span>
     </div>
-    <div class="demo-body-f">
-      <i class="ti ti-layout-dashboard" aria-hidden="true" style="font-size:44px; color:var(--surf2);"></i>
-      <p>L&rsquo;app si apre in una nuova scheda del browser.</p>
-      <button class="demo-cta" onclick="openApp()">
-        <i class="ti ti-external-link" aria-hidden="true"></i> Apri app
-      </button>
+    <div class="card acc-top scen">
+      <span class="tag">Scenario 2 · alto risparmio</span>
+      <span class="who">Alessandra, quadro a Torino</span>
+      <p class="small muted">Busta paga + estratto conto, con un affitto percepito. Obiettivo di 10.000 &euro;: circa 9 mesi, come proiezione matematica e non come previsione.</p>
+      <span class="res">+1.132,24 &euro; <span class="small muted" style="letter-spacing:0">al mese (34,3%)</span></span>
     </div>
   </div>
-  <p style="font-size:12px; color:var(--muted); margin-top:14px;">Scenario: persona con basso risparmio — caricamento busta paga + bolletta</p>
-</div>
+  <div style="display:flex; align-items:center; gap:30px; flex-wrap:wrap">
+    <button class="demo-cta" onclick="openApp()">Apri l&rsquo;app <span class="url" id="demo-url-lbl">localhost:8501</span> <span aria-hidden="true">&gt;</span></button>
+    <p class="note" style="margin-top:34px; max-width:760px">I documenti sono letti una volta prima del pitch e restano in cache: in sala il caricamento è immediato e non richiede rete.</p>
+  </div>
+</section>
 
-<!-- ══════════════════════════════════════════
-     ANNEX SLIDES (numerazione A1/A2/A3)
-══════════════════════════════════════════ -->
+<!-- 6 · Modello agentico dell'app (runtime) -->
+<section class="slide" data-title="Modello agentico: l'app">
+  <div class="eyebrow">Modello agentico · l&rsquo;app a runtime</div>
+  <h2>AI dove serve linguaggio, codice dove servono numeri, una persona dove serve giudizio</h2>
+  <div class="flow">
+    <div class="node ai">
+      <div class="kind">AI</div><h3>Estrazione</h3>
+      <p>Claude Haiku 4.5 via CLI <span class="mono-i">claude -p</span>: output vincolato da schema JSON, solo il tool Read sulla cartella degli upload, tetto $0,30, cache per hash del file.</p>
+    </div>
+    <div class="sep" aria-hidden="true">&gt;</div>
+    <div class="node code">
+      <div class="kind">Codice</div><h3>Guardrail</h3>
+      <p><span class="mono-i">content_guard</span> controlla ogni testo dell&rsquo;AI prima di mostrarlo: se suona come un consiglio, non si vede.</p>
+    </div>
+    <div class="sep" aria-hidden="true">&gt;</div>
+    <div class="node human">
+      <div class="kind">Persona</div><h3>Conferma</h3>
+      <p>L&rsquo;utente controlla, corregge, elimina o aggiunge voci. Senza conferma nessun calcolo (RF-09).</p>
+    </div>
+    <div class="sep" aria-hidden="true">&gt;</div>
+    <div class="node code">
+      <div class="kind">Codice</div><h3>Calcolo</h3>
+      <p>Python deterministico e testato: importi al mese, doppioni, totali, 50/30/20, proiezione. Zero token.</p>
+    </div>
+    <div class="sep" aria-hidden="true">&gt;</div>
+    <div class="node ai">
+      <div class="kind">AI, solo se serve</div><h3>Glossario</h3>
+      <p>26 definizioni scritte e riviste dal team, a 0 token. I termini nuovi: una sola chiamata, su richiesta, poi guardrail.</p>
+    </div>
+  </div>
+  <div class="legend">
+    <span class="l-ai">AI: dove serve capire testi senza formato fisso</span>
+    <span class="l-code">Codice: numeri e regole, ripetibili e testati</span>
+    <span class="l-human">Persona: i dati li conferma, le decisioni le prende lei</span>
+  </div>
+  <p class="note">Senza CLI o senza rete l&rsquo;app resta usabile: inserimento a mano e glossario rivisto. Prompt di sistema brevi in <span class="mono-i">agents/prompts/</span>.</p>
+</section>
 
-<!-- ═══ A0 — Annex intro ═══ -->
-<div class="slide slide-full" data-i="6" data-annex="true">
-  <div style="text-align:center;">
-    <div class="annex-label">Materiale supplementare</div>
-    <h2 style="align-self:center; margin-bottom:12px;">Annex</h2>
-    <p class="lead" style="text-align:center; margin:0 auto 28px;">Deliverable della challenge e dettagli tecnici.</p>
-    <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
-      <div class="card" style="padding:14px 20px; text-align:left; width:200px; cursor:pointer;" onclick="goTo(7)">
-        <div style="font-size:11px; font-weight:700; color:var(--acc); margin-bottom:6px; letter-spacing:1px; text-transform:uppercase;">A.1</div>
-        <div style="font-size:14px; font-weight:600;">Funzionalità<br>dettagliate</div>
+<!-- 7 · Modello agentico del delivery: i componenti -->
+<section class="slide" data-title="Modello agentico: i componenti">
+  <div class="eyebrow">Modello agentico · come l&rsquo;abbiamo costruita (1/2)</div>
+  <h2>La struttura agentica in <span class="acc">agents/</span></h2>
+  <div class="g2x3">
+    <div class="card comp"><div class="kind">Rules</div><h3>CLAUDE.md + 3 regole</h3>
+      <p><span class="mono-i">dominio</span>, <span class="mono-i">uso-ai</span>, <span class="mono-i">processo</span>: importate a ogni sessione. Il contesto lungo si legge solo quando serve.</p></div>
+    <div class="card comp"><div class="kind">Hook</div><h3>PreToolUse</h3>
+      <p>Su ogni Write/Edit: se il file contiene linguaggio da consulente, la scrittura viene bloccata (exit 2) e Claude riformula.</p></div>
+    <div class="card comp"><div class="kind">Skill</div><h3>finsup-copy-check · accenture-html-deck</h3>
+      <p>Checklist sui testi (consigli, significato, accessibilità) con eval; brand e scaletta di questa presentazione.</p></div>
+    <div class="card comp"><div class="kind">Subagent</div><h3>Revisore testi + 4 profili QA</h3>
+      <p>Copy reviewer (Haiku). QA: faculty e check agent (Sonnet), graphic designer (Opus), utente target (Sonnet). Ognuno nel suo contesto, in sola lettura.</p></div>
+    <div class="card comp"><div class="kind">Comandi</div><h3>/qa-review · /demo-ready</h3>
+      <p>QA multiprofilo in parallelo con i findings unificati in <span class="mono-i">qa-findings.md</span>; checklist prima del freeze.</p></div>
+    <div class="card comp"><div class="kind">Doppia rete</div><h3>Un solo vincolo, due controlli</h3>
+      <p>Lo stesso <span class="mono-i">content_guard.py</span> blocca i file in sviluppo (hook) e i testi a runtime (app). Definito e testato una volta.</p></div>
+  </div>
+  <p class="note">Fonte unica in <span class="mono-i">agents/</span>; in <span class="mono-i">.claude/</span> solo i rimandi che Claude Code usa per scoprire skill, subagent e comandi.</p>
+</section>
+
+<!-- 8 · Modello agentico del delivery: il processo -->
+<section class="slide" data-title="Modello agentico: il processo">
+  <div class="eyebrow">Modello agentico · come l&rsquo;abbiamo costruita (2/2)</div>
+  <h2>Spec-driven, sessioni in parallelo, QA a più voci</h2>
+  <div class="sessions">
+    <div class="card acc-top">
+      <h3>Sessione DEV</h3>
+      <p class="small muted">App: logica in <span class="mono-i">app/finsup/</span>, UI, test, prompt di estrazione. Corregge i findings dell&rsquo;app.</p>
+    </div>
+    <div class="link"><span class="gt" aria-hidden="true">&lt; &gt;</span>messaggi tra sessioni<br>file assegnati, commit a path espliciti</div>
+    <div class="card acc-top">
+      <h3>Sessione QA</h3>
+      <p class="small muted">Struttura <span class="mono-i">agents/</span>, documenti, presentazione e controllo qualità con i profili QA. Segnala, non corregge l&rsquo;app.</p>
+    </div>
+  </div>
+  <div class="pipe" aria-label="Flusso di sviluppo">
+    <span class="st">Brief faculty</span><span class="gt">&gt;</span>
+    <span class="st">Specifica RF-01..09</span><span class="gt">&gt;</span>
+    <span class="st">Regole</span><span class="gt">&gt;</span>
+    <span class="st">Codice</span><span class="gt">&gt;</span>
+    <span class="st gate">Hook + test</span><span class="gt">&gt;</span>
+    <span class="st gate">/qa-review</span><span class="gt">&gt;</span>
+    <span class="st human">Persona del team</span><span class="gt">&gt;</span>
+    <span class="st gate">/demo-ready</span><span class="gt">&gt;</span>
+    <span class="st human">Push</span>
+  </div>
+  <ul class="gt-list tight" style="margin-top:26px">
+    <li><strong>La specifica è la fonte di verità</strong>: ogni funzionalità cita il suo RF; se il codice deve divergere, si aggiorna prima la specifica.</li>
+    <li><strong>QA in 3 giri</strong>: 53 findings tracciati con owner e stato. Esempio: l&rsquo;estrazione reale ha rivelato uno stipendio contato due volte, corretto e coperto da test.</li>
+    <li><strong>Il push lo decide una persona</strong>, dopo test verdi e QA.</li>
+  </ul>
+</section>
+
+<!-- 9 · Uso consapevole dell'AI + verifica umana -->
+<section class="slide" data-title="Uso dell'AI e verifica umana">
+  <div class="eyebrow">Uso consapevole dell&rsquo;AI · verifica umana</div>
+  <h2>Pochi token, spesi dove servono. Le decisioni restano alle persone</h2>
+  <div class="g2">
+    <div>
+      <div class="kpis">
+        <div><div class="kpi">2</div><div class="kpi-lbl">punti dell&rsquo;app che usano l&rsquo;AI: estrazione e termini nuovi</div></div>
+        <div><div class="kpi">~$0,22</div><div class="kpi-lbl">per leggere i 5 documenti demo; $0 nelle riletture (cache)</div></div>
+        <div><div class="kpi">&minus;23k</div><div class="kpi-lbl">token a chiamata lanciando la CLI da una cartella neutra</div></div>
       </div>
-      <div class="card" style="padding:14px 20px; text-align:left; width:200px; cursor:pointer;" onclick="goTo(8)">
-        <div style="font-size:11px; font-weight:700; color:var(--acc); margin-bottom:6px; letter-spacing:1px; text-transform:uppercase;">A.2</div>
-        <div style="font-size:14px; font-weight:600;">Conformità<br>alla challenge</div>
-      </div>
-      <div class="card" style="padding:14px 20px; text-align:left; width:200px; cursor:pointer;" onclick="goTo(9)">
-        <div style="font-size:11px; font-weight:700; color:var(--acc); margin-bottom:6px; letter-spacing:1px; text-transform:uppercase;">A.3</div>
-        <div style="font-size:14px; font-weight:600;">Risk &amp;<br>Clarity Note</div>
-      </div>
+      <ul class="gt-list tight">
+        <li><strong>Haiku 4.5</strong> di default e tetto di spesa su ogni chiamata.</li>
+        <li><strong>Calcoli in Python</strong>: zero token per tutti i numeri.</li>
+        <li><strong>In sviluppo</strong>: ricerche e QA nei subagent, al thread principale torna solo la sintesi.</li>
+      </ul>
+    </div>
+    <div class="card acc-top">
+      <h3>Dove interviene una persona</h3>
+      <ul class="gt-list tight">
+        <li><strong>Utente</strong>: conferma obbligatoria dei dati estratti prima di ogni calcolo (RF-09).</li>
+        <li><strong>Team</strong>: i testi per l&rsquo;utente passano da guardrail e pre-filtro AI, poi da una persona; l&rsquo;esito è annotato in <span class="mono-i">verifica-umana.md</span>.</li>
+        <li><strong>QA</strong>: i profili segnalano, le persone decidono cosa correggere.</li>
+        <li><strong>Regola</strong>: Claude non scrive esiti di review al posto delle persone.</li>
+      </ul>
     </div>
   </div>
-</div>
+  <p class="note">Misure e scelte in <span class="mono-i">agents/workflows/uso-token.md</span> e <span class="mono-i">strategia-ai.md</span>.</p>
+</section>
 
-<!-- ═══ A1 — Funzionalità ═══ -->
-<div class="slide" data-i="7" data-annex="true">
-  <div class="annex-label">Annex A.1</div>
-  <h2 class="sm">Funzionalità chiave</h2>
-  <div class="feat-list">
-    <div class="feat">
-      <i class="ti ti-file-text" aria-hidden="true"></i>
-      <div><h4>Estrazione AI da documenti reali</h4><p>PDF e XLS caricati dall&rsquo;utente → Claude estrae voci strutturate (importo, categoria, periodicità) → form precompilato editabile</p></div>
+<!-- 10 · Risk & Clarity Note + chiusura -->
+<section class="slide" data-title="Risk & Clarity Note">
+  <div class="eyebrow">Risk &amp; Clarity Note</div>
+  <h2>Semplificare senza tradire</h2>
+  <div class="g3 rc">
+    <div class="card acc-top">
+      <div class="head">Cosa è semplificato</div>
+      <ul class="gt-list tight">
+        <li>Gergo &gt; definizioni di massimo 2 frasi</li>
+        <li>Bolletta &gt; una voce per servizio, IVA e oneri inclusi, stesso totale</li>
+        <li>Importi annuali e trimestrali &gt; quota mensile, accanto all&rsquo;originale</li>
+        <li>50/30/20 &gt; termine di paragone, non obiettivo</li>
+      </ul>
     </div>
-    <div class="feat">
-      <i class="ti ti-calculator" aria-hidden="true"></i>
-      <div><h4>Budget mensile con normalizzazione periodicità</h4><p>Importi annuali e trimestrali normalizzati su base mensile automaticamente. Riepilogo: entrate, uscite per categoria, risparmio netto.</p></div>
+    <div class="card acc-top">
+      <div class="head">Cosa non è alterato</div>
+      <ul class="gt-list tight">
+        <li>Gli importi: quelli del documento, con il file di origine</li>
+        <li>Nessuna voce sparisce in silenzio: i doppioni restano visibili in giallo</li>
+        <li>Della busta paga conta solo il netto: nessun doppio conteggio</li>
+        <li>Calcoli deterministici e testati</li>
+      </ul>
     </div>
-    <div class="feat">
-      <i class="ti ti-vocabulary" aria-hidden="true"></i>
-      <div><h4>Glossario contestuale in linguaggio semplice</h4><p>Ogni termine tecnico trovato nei documenti viene spiegato in parole semplici da Claude. Comprensione, non prescrizione.</p></div>
-    </div>
-    <div class="feat">
-      <i class="ti ti-chart-donut" aria-hidden="true"></i>
-      <div><h4>Grafici + benchmark 50/30/20 + simulatore obiettivo</h4><p>Grafico a torta per categoria di spesa, barre per confronto con benchmark. Simulatore: quanti mesi per raggiungere il mio obiettivo?</p></div>
+    <div class="card acc-top">
+      <div class="head">Ambiguità evitata</div>
+      <ul class="gt-list tight">
+        <li>&ldquo;Strumento educativo, non consulenza finanziaria&rdquo; su ogni schermata</li>
+        <li>Conferma obbligatoria prima del calcolo</li>
+        <li>Guardrail su ogni testo dell&rsquo;AI, prima di mostrarlo</li>
+        <li>Proiezione dichiarata: niente interessi, inflazione o imprevisti</li>
+      </ul>
     </div>
   </div>
-</div>
+  <div class="closing">
+    <span class="repo"><span class="gt">&gt;</span> github.com/PierluigiAconito/unipol-claude-ws-finsup</span>
+    <span class="thanks">Grazie<span class="acc">.</span></span>
+  </div>
+</section>
 
-<!-- ═══ A2 — Conformità ═══ -->
-<div class="slide" data-i="8" data-annex="true">
-  <div class="annex-label">Annex A.2 — Conformità alla challenge</div>
-  <h2 class="sm">Cosa non fa BudgetFacile</h2>
-  <div class="dont-list">
-    <div class="dont"><i class="ti ti-x dont-x" aria-hidden="true"></i>Non fornisce consulenza finanziaria personalizzata né raccomandazioni di investimento (no ETF, fondi, azioni).</div>
-    <div class="dont"><i class="ti ti-x dont-x" aria-hidden="true"></i>Non prescrive tagli di spesa specifici: evidenzia i dati, la decisione resta interamente dell&rsquo;utente.</div>
-    <div class="dont"><i class="ti ti-x dont-x" aria-hidden="true"></i>Non è un chatbot generico: ogni interazione è legata a una funzione applicativa concreta.</div>
-    <div class="dont"><i class="ti ti-x dont-x" aria-hidden="true"></i>Non altera gli importi originali: i dati estratti sono sempre visibili e modificabili prima del calcolo (RF-09).</div>
-    <div class="dont"><i class="ti ti-x dont-x" aria-hidden="true"></i>Non avvia nessun calcolo automatico: la schermata di conferma è obbligatoria.</div>
-  </div>
-  <div class="card green" style="margin-top:16px; padding:13px 18px; width:100%;">
-    <p style="font-size:13px; color:var(--muted);">
-      <i class="ti ti-shield" aria-hidden="true" style="color:var(--acc); margin-right:6px;"></i>
-      Il disclaimer &ldquo;Strumento educativo — non consulenza finanziaria&rdquo; è visibile su ogni schermata di risultato.
-    </p>
-  </div>
-</div>
+<!-- Annex A.1 · Conformità -->
+<section class="slide" data-annex="true" data-title="A.1 Cosa non fa">
+  <div class="annex-label">Annex A.1 · Conformità al Tema 02</div>
+  <h2>Cosa BudgetFacile non fa, per scelta</h2>
+  <ul class="gt-list">
+    <li><strong>Nessuna consulenza finanziaria</strong>: niente raccomandazioni di investimento, prodotti o scelte su cosa comprare o vendere.</li>
+    <li><strong>Nessuna prescrizione sulle spese</strong>: con risparmio negativo mostra quali categorie pesano di più, non cosa tagliare (RF-06).</li>
+    <li><strong>Nessun chatbot aperto</strong>: ogni uso dell&rsquo;AI è legato a una funzione precisa dell&rsquo;app.</li>
+    <li><strong>Nessun importo modificato in silenzio</strong>: i dati estratti sono sempre visibili e correggibili (RF-09).</li>
+    <li><strong>Nessun calcolo automatico</strong>: senza la conferma dell&rsquo;utente non parte nulla.</li>
+  </ul>
+  <p class="note">Il vincolo è scritto nelle regole (<span class="mono-i">agents/instructions/dominio.md</span>), controllato dall&rsquo;hook in sviluppo e dal guardrail a runtime, coperto dai test.</p>
+</section>
 
-<!-- ═══ A3 — Risk & Clarity ═══ -->
-<div class="slide" data-i="9" data-annex="true">
-  <div class="annex-label">Annex A.3 — Risk &amp; Clarity Note</div>
-  <h2 class="sm">Trasparenza sulle semplificazioni</h2>
-  <div class="risk-cols">
-    <div class="simp">
-      <div class="rc-head simp">Cosa è stato semplificato</div>
-      <div class="rc-item"><div class="rc-dot"></div><span>Linguaggio tecnico (TAEG, trattenute, oneri) → spiegazioni in parole semplici generate da Claude</span></div>
-      <div class="rc-item"><div class="rc-dot"></div><span>Voci sparse su più documenti → aggregazione in categorie leggibili</span></div>
-      <div class="rc-item"><div class="rc-dot"></div><span>Periodicità diverse → normalizzazione automatica su base mensile</span></div>
-      <div class="rc-item"><div class="rc-dot"></div><span>Confronto benchmark 50/30/20 presentato come dato informativo, non prescrittivo</span></div>
+<!-- Annex A.2 · I numeri dei due scenari -->
+<section class="slide" data-annex="true" data-title="A.2 I numeri della demo">
+  <div class="annex-label">Annex A.2 · I numeri della demo</div>
+  <h2>Due scenari a confronto</h2>
+  <table class="num">
+    <thead><tr><th></th><th>Marco · basso risparmio</th><th>Alessandra · alto risparmio</th></tr></thead>
+    <tbody>
+      <tr><td>Documenti</td><td>busta paga, bolletta, estratto conto</td><td>busta paga, estratto conto</td></tr>
+      <tr><td>Entrate al mese</td><td>1.408,73 &euro;</td><td>3.296,34 &euro; (stipendio + affitto percepito)</td></tr>
+      <tr><td>Uscite al mese</td><td>1.490,29 &euro;</td><td>2.164,10 &euro;</td></tr>
+      <tr><td>Risparmio al mese</td><td class="neg">&minus;81,56 &euro; (&minus;5,8%)</td><td>1.132,24 &euro; (34,3%)</td></tr>
+      <tr><td>Categorie principali</td><td>Abitazione 52,2% · Debiti 19,1% · Alimentari 16,0%</td><td>Abitazione 49,9% · Alimentari 21,6% · Altro 10,0%</td></tr>
+      <tr><td>50/30/20 (riferimento)</td><td>necessità 104,2% · desideri 1,6%</td><td>necessità 62,2% · desideri 3,4%</td></tr>
+      <tr><td>Obiettivo</td><td>1.000 &euro;: non raggiunto con il ritmo attuale</td><td>10.000 &euro;: circa 9 mesi (proiezione)</td></tr>
+    </tbody>
+  </table>
+  <p class="note">Diverso dal saldo della banca perché le voci non mensili sono riportate al mese (RF-02): il bollo trimestrale da 8,55 &euro; vale 2,85 &euro; al mese. Dettagli in <span class="mono-i">app/docs/deliverable-tema02.md</span>.</p>
+</section>
+
+<!-- Annex A.3 · Il repository -->
+<section class="slide" data-annex="true" data-title="A.3 Il repository">
+  <div class="annex-label">Annex A.3 · Il repository</div>
+  <h2>Dove trovare ogni cosa</h2>
+  <div class="g2">
+<pre class="tree"><b>app/</b>               la soluzione
+  main.py          UI Streamlit, 3 passi
+  <i>finsup/</i>          budget, estrazione, glossario,
+                   guardrail, client della CLI
+  tests/           test pytest: logica, estrazione,
+                   glossario, hook, flusso UI
+  demo_assets/     documenti fittizi dei 2 scenari
+  docs/            specifica RF e deliverable Tema 02
+<b>agents/</b>            la struttura agentica
+  instructions/    regole (importate da CLAUDE.md)
+  hooks/ skills/ subagents/ commands/
+  prompts/         system prompt usati dall'app
+  workflows/       SDD, strategia AI, token,
+                   verifica umana, findings QA
+<b>presentation/</b>      questa presentazione
+<b>README.md</b>  <b>CLAUDE.md</b>  <b>.claude/</b> (solo rimandi)</pre>
+    <div class="card acc-top">
+      <h3>Criteri di valutazione: dove guardare</h3>
+      <ul class="gt-list tight">
+        <li><strong>Qualità tecnica</strong>: <span class="mono-i">app/finsup/</span>, <span class="mono-i">app/tests/</span></li>
+        <li><strong>Uso consapevole dell&rsquo;AI</strong>: <span class="mono-i">uso-token.md</span>, <span class="mono-i">ai_client.py</span></li>
+        <li><strong>Verifica umana</strong>: <span class="mono-i">verifica-umana.md</span>, conferma RF-09</li>
+        <li><strong>Pattern</strong>: <span class="mono-i">CLAUDE.md</span>, <span class="mono-i">agents/README.md</span></li>
+        <li><strong>Strategia AI</strong>: <span class="mono-i">strategia-ai.md</span></li>
+        <li><strong>Controllo qualità</strong>: <span class="mono-i">qa-findings.md</span></li>
+      </ul>
     </div>
-    <div class="pres">
-      <div class="rc-head pres">Cosa non è stato alterato</div>
-      <div class="rc-item"><div class="rc-dot"></div><span>Gli importi reali dai documenti sono sempre visibili e modificabili (RF-09)</span></div>
-      <div class="rc-item"><div class="rc-dot"></div><span>Risparmio negativo evidenziato senza nascondere la realtà (RF-06)</span></div>
-      <div class="rc-item"><div class="rc-dot"></div><span>Significato originale: le spiegazioni affiancano i termini tecnici, non li sostituiscono</span></div>
-      <div class="rc-item"><div class="rc-dot"></div><span>Responsabilità decisionale: l&rsquo;app mostra i dati, l&rsquo;utente decide</span></div>
-    </div>
   </div>
-  <div class="card" style="margin-top:18px; padding:13px 18px; width:100%; border-left:3px solid var(--acc);">
-    <p style="font-size:13px; color:var(--muted); line-height:1.5;">
-      <strong>Come si è evitata l&rsquo;ambiguità:</strong> nessuna raccomandazione implicita nel tono delle spiegazioni; disclaimer esplicito su ogni schermata; conferma obbligatoria prima del calcolo.
-    </p>
+</section>
+
+</main>
+
+<nav id="chrome" aria-label="Navigazione slide">
+  <span class="brand">Budget<span class="acc">Facile</span><span class="gt">&gt;</span></span>
+  <div id="nav">
+    <button class="nav-btn" id="btn-prev" aria-label="Slide precedente">&lt;</button>
+    <div id="dots"></div>
+    <button class="nav-btn" id="btn-next" aria-label="Slide successiva">&gt;</button>
+    <span id="counter">1 / 10</span>
+    <button class="nav-btn" id="btn-annex">Annex &gt;</button>
   </div>
-</div>
-
-</div><!-- end #deck -->
-
-<div id="chrome">
-  <button class="nav-btn" id="btn-prev" disabled>&#8592;</button>
-  <div id="dots"></div>
-  <button class="nav-btn" id="btn-next">&#8594;</button>
-  <span id="counter" style="margin-left:12px;">1 / 6</span>
-  <button class="nav-btn annex-btn" id="btn-annex" style="margin-left:20px;">Annex &#8594;</button>
+</nav>
 </div>
 
 <script>
 const APP_URL = 'http://localhost:8501'; // app Streamlit: streamlit run app/main.py (porta predefinita)
 
-const MAIN_COUNT  = 6;
-const TOTAL_COUNT = 10;
-const slides = document.querySelectorAll('.slide');
-const bar    = document.getElementById('bar');
-const btnP   = document.getElementById('btn-prev');
-const btnN   = document.getElementById('btn-next');
-const btnA   = document.getElementById('btn-annex');
-const ctr    = document.getElementById('counter');
+const slides = [...document.querySelectorAll('.slide')];
+const main = slides.map((s, i) => i).filter(i => !slides[i].dataset.annex);
+const annex = slides.map((s, i) => i).filter(i => slides[i].dataset.annex);
+const bar = document.getElementById('bar');
+const btnP = document.getElementById('btn-prev');
+const btnN = document.getElementById('btn-next');
+const btnA = document.getElementById('btn-annex');
+const ctr = document.getElementById('counter');
 const dotsEl = document.getElementById('dots');
-
+const dots = [];
 let cur = 0;
 
-// Build dots: 6 main + separator + 4 annex
-const MAIN_SLIDES  = [0,1,2,3,4,5];
-const ANNEX_SLIDES = [6,7,8,9];
-
-MAIN_SLIDES.forEach(i => {
-  const d = document.createElement('div');
-  d.className = 'dot' + (i === 0 ? ' on' : '');
+function addDot(i, extra) {
+  const d = document.createElement('button');
+  d.className = 'dot' + extra;
+  d.setAttribute('aria-label', slides[i].dataset.title);
   d.addEventListener('click', () => goTo(i));
   dotsEl.appendChild(d);
-});
-
-// separator
-const sep = document.createElement('div');
-sep.style.cssText = 'width:1px; height:10px; background:var(--surf2); margin:0 4px;';
-dotsEl.appendChild(sep);
-
-ANNEX_SLIDES.forEach(i => {
-  const d = document.createElement('div');
-  d.className = 'dot annex-dot';
-  d.addEventListener('click', () => goTo(i));
-  dotsEl.appendChild(d);
-});
-
-function getDot(i) {
-  if (MAIN_SLIDES.includes(i)) return dotsEl.children[i];
-  if (ANNEX_SLIDES.includes(i)) return dotsEl.children[MAIN_COUNT + 1 + ANNEX_SLIDES.indexOf(i)];
+  dots[i] = d;
 }
+main.forEach(i => addDot(i, ''));
+const sep = document.createElement('span'); sep.className = 'dots-sep'; dotsEl.appendChild(sep);
+annex.forEach(i => addDot(i, ' annex'));
 
 function goTo(n) {
-  const prev = getDot(cur);
-  if (prev) prev.classList.remove('on');
-  slides[cur].classList.remove('active');
-
-  cur = Math.max(0, Math.min(TOTAL_COUNT - 1, n));
-
-  slides[cur].classList.add('active');
-  const nd = getDot(cur);
-  if (nd) nd.classList.add('on');
-
-  const isAnnex = ANNEX_SLIDES.includes(cur);
-  bar.style.width = isAnnex
-    ? (((ANNEX_SLIDES.indexOf(cur) + 1) / ANNEX_SLIDES.length) * 100) + '%'
-    : (((cur + 1) / MAIN_COUNT) * 100) + '%';
-
-  if (isAnnex) {
-    const ai = ANNEX_SLIDES.indexOf(cur);
-    ctr.textContent = 'A' + ai + ' / ' + (ANNEX_SLIDES.length - 1);
-    btnA.textContent = '← Presentazione';
-    btnA.onclick = () => goTo(5);
-  } else {
-    ctr.textContent = (cur + 1) + ' / ' + MAIN_COUNT;
-    btnA.textContent = 'Annex →';
-    btnA.onclick = () => goTo(6);
-  }
-
+  slides[cur].classList.remove('active'); dots[cur].classList.remove('on');
+  cur = Math.max(0, Math.min(slides.length - 1, n));
+  slides[cur].classList.add('active'); dots[cur].classList.add('on');
+  const inAnnex = annex.includes(cur);
+  const pos = inAnnex ? annex.indexOf(cur) : main.indexOf(cur);
+  const len = inAnnex ? annex.length : main.length;
+  bar.style.width = ((pos + 1) / len * 100) + '%';
+  ctr.textContent = inAnnex ? 'A.' + (pos + 1) + ' / A.' + len : (pos + 1) + ' / ' + len;
+  btnA.textContent = inAnnex ? '< Presentazione' : 'Annex >';
   btnP.disabled = cur === 0;
-  btnN.disabled = cur === TOTAL_COUNT - 1;
+  btnN.disabled = cur === slides.length - 1;
 }
-
 btnP.addEventListener('click', () => goTo(cur - 1));
 btnN.addEventListener('click', () => goTo(cur + 1));
-btnA.addEventListener('click', () => goTo(6));
-
+btnA.addEventListener('click', () => goTo(annex.includes(cur) ? main[main.length - 1] : annex[0]));
 document.addEventListener('keydown', e => {
-  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goTo(cur + 1); }
-  if (e.key === 'ArrowLeft') { e.preventDefault(); goTo(cur - 1); }
+  if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); goTo(cur + 1); }
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); goTo(cur - 1); }
   if (e.key === 'Home') { e.preventDefault(); goTo(0); }
-  if (e.key === 'End')  { e.preventDefault(); goTo(TOTAL_COUNT - 1); }
+  if (e.key === 'End') { e.preventDefault(); goTo(main[main.length - 1]); }
 });
+
+function fit() {
+  const s = Math.min(window.innerWidth / 1600, window.innerHeight / 900);
+  document.documentElement.style.setProperty('--s', s);
+}
+window.addEventListener('resize', fit);
+fit();
 
 function openApp() { window.open(APP_URL, '_blank'); }
 

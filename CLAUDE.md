@@ -1,4 +1,6 @@
-# FinSup: regole operative per Claude Code
+# BudgetFacile (FinSup): regole operative per Claude Code
+
+BudgetFacile è il nome del prodotto (app, README, presentazione); FinSup è il nome interno del progetto e del package Python `app/finsup/`.
 
 Prototipo Hagenthon, Tema 02 (Inclusione Finanziaria): app Streamlit che aiuta una persona con bassa alfabetizzazione finanziaria a **capire** il proprio budget mensile, partendo dai documenti che ha già (busta paga, bollette, estratto conto). Contesto completo in [agents/context/progetto.md](agents/context/progetto.md): qui solo regole, per restare leggero a ogni sessione. Non incollarlo nei prompt.
 

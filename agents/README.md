@@ -1,4 +1,6 @@
-# agents/: struttura agentica di FinSup
+# agents/: struttura agentica di BudgetFacile
+
+BudgetFacile è il nome del prodotto; FinSup (`app/finsup/`, `finsup-copy-check`, `finsup-copy-reviewer`) è il nome interno del progetto.
 
 Tutto ciò che guida gli agenti, in sviluppo (Claude Code) e a runtime (le chiamate dell'app a Claude), sta qui. È la fonte unica: `.claude/` contiene solo i collegamenti che Claude Code richiede per scoprire i componenti (vedi [sotto](#perché-claude-contiene-solo-rimandi)).
 
