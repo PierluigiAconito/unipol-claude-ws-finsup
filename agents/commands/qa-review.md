@@ -9,7 +9,7 @@ QA multiprofilo dei deliverable. Ogni profilo è un subagent separato, con conte
 | `qa-faculty` | giudizio soggettivo della giuria | Sonnet | FAC |
 | `qa-check-agent` | agente valutatore del portale: requisiti, consegna, pulizia del repo | Sonnet | CHK |
 | `qa-graphic-designer` | grafica di presentazione (brand Accenture) e app | Opus | GFX |
-| `qa-utente-target` | la persona del Tema 02 che usa l'app; test di comprensione prima e dopo | Haiku | UT |
+| `qa-utente-target` | la persona del Tema 02 che usa l'app; test di comprensione prima e dopo | Sonnet | UT |
 | `finsup-copy-reviewer` | conformità dei testi al Tema 02 (niente consigli, significato, accessibilità) | Haiku | (tabella propria) |
 
 ## Passi
