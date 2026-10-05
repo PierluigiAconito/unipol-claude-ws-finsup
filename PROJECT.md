@@ -39,7 +39,12 @@ Documento unico di riferimento per il team: consolida regole del workshop, tema 
 
 ## Requisiti funzionali
 
-🚧 In definizione (in carico alla collega) — vedi [docs/02-requisiti-funzionali.md](docs/02-requisiti-funzionali.md), da aggiornare appena pronti: persona target, scenario educativo preciso, funzionalità core, criterio di misurazione del miglioramento.
+✅ Arrivati — vedi [docs/02-requisiti-funzionali.md](docs/02-requisiti-funzionali.md) per il dettaglio completo (fonte canonica). Sintesi:
+
+- **Scenario**: gestione del budget personale (uno dei 5 scenari ammessi dal tema)
+- **Persona**: bassa alfabetizzazione finanziaria, riceve documenti (busta paga, bollette, estratto conto) con gergo tecnico che non comprende
+- **Core**: form guidato entrate/uscite + upload PDF/XLS con estrazione via Claude (RF-01b) → schermata di conferma obbligatoria (RF-09) → calcolo budget/risparmio → glossario termini tecnici (RF-04) → confronto benchmark 50/30/20 (RF-05) → proiezione obiettivo di risparmio (RF-07)
+- **Hard constraint applicativo**: nessuna prescrizione (RF-06, RF-07) — solo consapevolezza, mai "cosa fare"
 
 ## Criteri di valutazione da soddisfare nel pacchetto finale
 
