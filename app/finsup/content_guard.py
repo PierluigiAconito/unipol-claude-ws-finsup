@@ -4,22 +4,32 @@ Il brief vieta esplicitamente "raccomandazioni di investimento, consulenza
 finanziaria personalizzata o indicazioni su cosa comprare, vendere o
 scegliere". Questo modulo cerca pattern linguistici tipici di un consiglio
 d'azione finanziaria personalizzato in un testo (generato dall'AI o scritto
-a mano). Usato sia a runtime nell'app (`app.py`) sia dall'hook di
-Claude Code (`.claude/hooks/check_financial_advice.py`).
+a mano). Usato sia a runtime nell'app (`app/main.py`) sia dall'hook di
+Claude Code (`agents/hooks/check_financial_advice.py`).
 
 Nota: i pattern intercettano il *consiglio d'azione*, non la menzione di
-termini finanziari (che e' necessaria per un tool educativo).
+termini finanziari (che e' necessaria per un tool educativo). Coprono anche
+la prescrizione di tagli di spesa, vietata da RF-06/RF-07
+(app/docs/requisiti-funzionali.md).
 """
 from __future__ import annotations
 
 import re
 
+_SPEND_VERBS = "investire|comprare|vendere|scegliere|tagliare|ridurre|eliminare|spendere"
+
 FORBIDDEN_PATTERNS = [
-    r"\bti consiglio di (investire|comprare|vendere|scegliere)\b",
-    r"\bdovresti (investire|comprare|vendere|scegliere)\b",
+    # consiglio esplicito in prima persona
+    rf"\bti (consiglio|suggerisco|raccomando) di\b",
+    r"\bti consigliamo (di|questo|questa|il|la)\b",
+    # prescrizione in seconda persona
+    rf"\bdovresti (\w+ )?({_SPEND_VERBS})\b",
+    r"\bti conviene\b",
+    # imperativi su prodotti o spese
     r"\b(investi|compra|vendi) (in|su|il|la|questo|questa)\b",
-    r"\bla scelta migliore per te è\b",
-    r"\bti consigliamo (questo|questa|il|la) (fondo|titolo|prodotto|polizza)\b",
+    r"\b(taglia|riduci|elimina)\b.{0,30}\b(spes[ae]|abbonament[oi]|uscit[ae])\b",
+    # scelta al posto dell'utente
+    r"\bla scelta migliore (per te )?(è|e')",
 ]
 
 _COMPILED = [re.compile(p, re.IGNORECASE) for p in FORBIDDEN_PATTERNS]

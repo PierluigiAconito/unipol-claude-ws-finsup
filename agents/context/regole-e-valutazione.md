@@ -13,6 +13,22 @@ Fonte: brief del team (chat di kickoff) + documento ufficiale faculty (`hagentho
 2. **Presentazione da 5 minuti** al gruppo, demo della soluzione inclusa
 3. **Repo pubblico su GitHub** con tutto il materiale (codice, documentazione, evidenze)
 
+## Modalità di consegna (slide faculty "Repository finale")
+
+- Consegna **solo** tramite repository pubblico GitHub, completo di progetto, struttura agentica e presentazione finale.
+- Il repository deve essere organizzato in **3 cartelle principali**:
+
+  ```
+  /
+  ├── app/            soluzione sviluppata (codice del prototipo)
+  ├── agents/         struttura agentica: agenti, istruzioni, comandi, prompt, skills e workflow
+  ├── presentation/   presentazione HTML (brand guidelines Accenture) della soluzione e della struttura agentica
+  └── README.md
+  ```
+
+- La presentazione va realizzata **in formato HTML**, seguendo le **brand guidelines Accenture**.
+- **Entro il freeze** devono essere pushati sia il progetto sia la presentazione.
+
 ## Parametri di valutazione della soluzione
 
 - **Qualità tecnica**

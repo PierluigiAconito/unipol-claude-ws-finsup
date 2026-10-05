@@ -4,7 +4,7 @@
     {
       "name": "finsup-app",
       "runtimeExecutable": ".venv/Scripts/streamlit.exe",
-      "runtimeArgs": ["run", "app.py", "--server.headless", "true"],
+      "runtimeArgs": ["run", "app/main.py", "--server.headless", "true"],
       "port": 8501
     }
   ]

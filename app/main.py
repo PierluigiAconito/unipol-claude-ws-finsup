@@ -7,8 +7,8 @@ contenuti -> output, con trasparenza su costo/token per ogni chiamata.
 """
 import streamlit as st
 
-from app.ai_client import ask
-from app.content_guard import find_violations
+from finsup.ai_client import ask
+from finsup.content_guard import find_violations
 
 st.set_page_config(page_title="FinSup — Inclusione Finanziaria", page_icon="\U0001F4B6")
 
