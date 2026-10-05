@@ -184,6 +184,17 @@ def test_bill_items_are_not_matched_one_by_one_once_the_bill_total_is_matched():
     assert commissione in kept and bollo in kept
 
 
+def test_second_upload_does_not_reopen_items_already_checked():
+    # bolletta + estratto caricati prima (addebito RID gia' tolto), poi un nuovo documento
+    bollo = {"label": "Imposta di bollo", "amount": 2.00, "source": "bolletta.pdf"}
+    luce = {"label": "Energia elettrica", "amount": 58.05, "source": "bolletta.pdf"}
+    commissione = {"label": "Commissione online", "amount": 2.00, "source": "estratto.xlsx"}
+    affitto = {"label": "Affitto", "amount": 620, "source": "estratto.xlsx"}
+    netto = {"label": "Netto in busta", "amount": 1408.73, "source": "busta_paga.pdf"}
+    kept, dropped = remove_duplicates([bollo, luce, commissione, affitto, netto], new_sources={"busta_paga.pdf"})
+    assert dropped == [] and len(kept) == 5
+
+
 def test_remove_duplicates_leaves_manual_rows_alone():
     manual = [{"label": "Stipendio", "amount": 1500, "source": None},
               {"label": "Altro stipendio", "amount": 1500, "source": None}]

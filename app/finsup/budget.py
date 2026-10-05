@@ -170,7 +170,7 @@ def possible_duplicates(items: list[dict]) -> list[tuple[dict, dict]]:
     return pairs + total_pairs
 
 
-def remove_duplicates(items: list[dict]) -> tuple[list[dict], list[dict]]:
+def remove_duplicates(items: list[dict], new_sources: set[str] | None = None) -> tuple[list[dict], list[dict]]:
     """Toglie le voci doppie tra file diversi: ogni importo conta una volta sola.
 
     Avere la stessa voce in due documenti e' normale (busta paga + estratto
@@ -182,6 +182,11 @@ def remove_duplicates(items: list[dict]) -> tuple[list[dict], list[dict]]:
       documento d'origine (es. la busta paga).
     Ritorna (voci tenute, voci tolte); ogni voce tolta ha `duplicate_of` con
     la voce che la sostituisce, cosi' la UI la mostra e niente sparisce in silenzio.
+
+    `new_sources`: i file dell'ultimo caricamento. Se indicato, si toglie solo
+    dove almeno una voce della coppia e' nuova: le voci gia' controllate non
+    vengono rimesse in discussione (altrimenti, tolto l'addebito della
+    bolletta, bollo 2,00 e commissione 2,00 tornerebbero "doppioni").
     """
     per_source: dict[str, int] = {}
     for item in items:
@@ -190,6 +195,8 @@ def remove_duplicates(items: list[dict]) -> tuple[list[dict], list[dict]]:
 
     removed: dict[int, str] = {}
     for a, b in possible_duplicates(items):
+        if new_sources is not None and a.get("source") not in new_sources and b.get("source") not in new_sources:
+            continue
         if b.get("is_total"):
             victim, kept_label = a, f"{b['label']} ({eur(b['amount'])})"
         else:

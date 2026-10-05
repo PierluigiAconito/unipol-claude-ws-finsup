@@ -344,8 +344,9 @@ def step_input() -> None:
         # La stessa voce in due documenti (es. stipendio in busta paga e accredito sul conto) e'
         # normale: si tiene una copia sola, senza chiedere nulla all'utente, e le copie tolte
         # restano visibili in giallo nella conferma.
-        st.session_state.incomes, dropped_incomes = remove_duplicates(_merge(incomes, new_incomes))
-        st.session_state.expenses, dropped_expenses = remove_duplicates(_merge(expenses, new_expenses))
+        uploaded = {f.name for f in files}  # si confronta solo cio' che arriva da questo caricamento
+        st.session_state.incomes, dropped_incomes = remove_duplicates(_merge(incomes, new_incomes), uploaded)
+        st.session_state.expenses, dropped_expenses = remove_duplicates(_merge(expenses, new_expenses), uploaded)
         dropped = dropped_incomes + dropped_expenses
         st.session_state.duplicates += dropped
         if dropped:
@@ -407,11 +408,14 @@ def step_results() -> None:
     cols[2].metric("Risparmio al mese", eur(s.savings), border=True, help="Entrate al mese − uscite al mese")
     cols[3].metric("Tasso di risparmio", _pct(s.savings_rate), border=True,
                    help="La parte delle entrate che resta dopo le uscite")
+    # UT-02: i tipi di spesa spiegati sul posto, non solo nell'help della tabella
     st.caption(
-        "Sul totale delle entrate: spese fisse " + _pct(s.type_share_of_income("fissa"))
-        + " · semi-fisse " + _pct(s.type_share_of_income("semi-fissa"))
-        + " · variabili " + _pct(s.type_share_of_income("variabile"))
-        + (" · una tantum " + _pct(s.type_share_of_income("una tantum")) if s.by_type.get("una tantum") else "")
+        "Quanto delle entrate va in spese **fisse** (stessa cifra ogni mese) "
+        + _pct(s.type_share_of_income("fissa"))
+        + " · **semi-fisse** (cambiano poco) " + _pct(s.type_share_of_income("semi-fissa"))
+        + " · **variabili** (cambiano molto) " + _pct(s.type_share_of_income("variabile"))
+        + (" · **una tantum** (una volta sola) " + _pct(s.type_share_of_income("una tantum"))
+           if s.by_type.get("una tantum") else "")
     )
 
     if s.savings <= 0:
@@ -545,6 +549,8 @@ def _benchmark_section(s) -> None:
             f"- **Desideri: {_pct(by_bucket['Desideri'])}** (riferimento 30%)\n"
             f"- **Risparmio: {_pct(by_bucket['Risparmio'])}** (riferimento 20%)"
         )
+        if by_bucket["Necessità"] > 1:  # UT-03
+            st.markdown("Più del 100% vuol dire che le sole spese necessarie superano quanto entra nel mese.")
         _benchmark_note()
 
 
@@ -603,11 +609,10 @@ def _goal_section(s) -> None:
     """RF-07: proiezione puramente matematica dell'obiettivo di risparmio."""
     goal = st.number_input("Cifra che vorresti mettere da parte (€)", min_value=0.0, value=1000.0, step=100.0)
     months = months_to_goal(goal, s.savings)
-    if months is None:
-        st.info(
-            f"Con un risparmio mensile di {eur(s.savings)}, mantenendo il ritmo attuale la cifra di "
-            f"{eur(goal)} non viene raggiunta."
-        )
+    if months is None:  # UT-01: niente "risparmio di -81,56 €"
+        gap = (f"Ogni mese le uscite superano le entrate di {eur(-s.savings)}" if s.savings < 0
+               else "Ogni mese le uscite sono pari alle entrate")
+        st.info(f"{gap}: di questo passo la cifra di {eur(goal)} non viene raggiunta.")
     else:
         years = ""
         if months >= 12:
