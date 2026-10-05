@@ -292,11 +292,16 @@ def step_confirm() -> None:
     with duplicates_box:
         for kind, items in (("entrata", incomes), ("uscita", expenses)):
             for a, b in possible_duplicates(items):
+                if b.get("is_total"):  # es. addebito della bolletta = somma delle voci della bolletta
+                    other = f"il totale delle voci lette da {b['source']}"
+                    fix = "tieni le voci dettagliate oppure il solo addebito, non entrambi"
+                else:
+                    other = f"«{b['label']}» ({b['source']})"
+                    fix = "cancellane una"
                 st.warning(
-                    f"**Possibile doppione**: «{a['label']}» ({a['source']}) e «{b['label']}» "
-                    f"({b['source']}) hanno lo stesso importo, {eur(float(a['amount']))}. Se sono la "
-                    f"stessa {kind} (es. lo stipendio in busta paga e il suo accredito sul conto), "
-                    "cancellane una: altrimenti viene contata due volte.",
+                    f"**Possibile doppione**: «{a['label']}» ({a['source']}) ha lo stesso importo di "
+                    f"{other}: {eur(float(a['amount']))}. Se è la stessa {kind} (es. lo stipendio in busta "
+                    f"paga e il suo accredito sul conto), {fix}: altrimenti viene contata due volte.",
                     icon="👯",
                 )
     preview = compute_budget(incomes, expenses)

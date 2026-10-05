@@ -134,18 +134,40 @@ def months_to_goal(goal: float, monthly_savings: float) -> int | None:
 def possible_duplicates(items: list[dict]) -> list[tuple[dict, dict]]:
     """RF-09: coppie di voci con lo stesso importo lette da file diversi.
 
-    Caso tipico: lo stipendio nella busta paga e il suo accredito
-    nell'estratto conto. Non le unisce da solo: le segnala all'utente,
-    che decide quale tenere nella schermata di conferma.
+    Due casi tipici:
+    - lo stipendio nella busta paga e il suo accredito nell'estratto conto;
+    - l'addebito di una bolletta nell'estratto conto e la bolletta stessa,
+      che l'estrazione divide per servizio: si confronta con il totale delle
+      voci di quel file (la seconda voce della coppia ha `is_total=True`).
+    Non unisce nulla da solo: segnala, e l'utente decide in conferma.
     """
     pairs = []
     for i, a in enumerate(items):
         for b in items[i + 1:]:
-            same_amount = _number(a.get("amount")) > 0 and abs(_number(a.get("amount")) - _number(b.get("amount"))) < 0.005
-            different_files = a.get("source") and b.get("source") and a.get("source") != b.get("source")
-            if same_amount and different_files:
+            if _same_amount(a, b) and _different_files(a, b):
                 pairs.append((a, b))
+
+    by_source: dict[str, list[dict]] = {}
+    for item in items:
+        if item.get("source"):
+            by_source.setdefault(item["source"], []).append(item)
+    for a in items:
+        for source, group in by_source.items():
+            if len(group) < 2 or source == a.get("source") or not a.get("source"):
+                continue
+            total = {"label": f"totale delle voci di {source}", "source": source, "is_total": True,
+                     "amount": round(sum(_number(g.get("amount")) for g in group), 2)}
+            if _same_amount(a, total):
+                pairs.append((a, total))
     return pairs
+
+
+def _same_amount(a: dict, b: dict) -> bool:
+    return _number(a.get("amount")) > 0 and abs(_number(a.get("amount")) - _number(b.get("amount"))) < 0.005
+
+
+def _different_files(a: dict, b: dict) -> bool:
+    return bool(a.get("source") and b.get("source") and a.get("source") != b.get("source"))
 
 
 def eur(value: float) -> str:

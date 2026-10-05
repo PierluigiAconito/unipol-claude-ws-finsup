@@ -120,6 +120,17 @@ def test_possible_duplicates_across_files():
     assert possible_duplicates([salary, credit, other, manual]) == [(salary, credit)]
 
 
+def test_bank_debit_matching_bill_total_is_a_duplicate():
+    # la bolletta viene estratta per servizio; l'estratto conto ne riporta solo il totale
+    luce = {"label": "Energia elettrica", "amount": 58.05, "source": "bolletta.pdf"}
+    gas = {"label": "Gas naturale", "amount": 39.77, "source": "bolletta.pdf"}
+    rid = {"label": "Addebito RID bolletta", "amount": 97.82, "source": "estratto.pdf"}
+    pairs = possible_duplicates([luce, gas, rid])
+    assert len(pairs) == 1
+    first, total = pairs[0]
+    assert first is rid and total["is_total"] and total["source"] == "bolletta.pdf"
+
+
 def test_same_amount_in_same_file_is_not_a_duplicate():
     a = {"label": "Palestra", "amount": 39, "source": "estratto.pdf"}
     b = {"label": "Corso", "amount": 39, "source": "estratto.pdf"}
